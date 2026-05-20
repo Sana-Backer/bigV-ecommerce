@@ -14,6 +14,7 @@ const categories = [
     title: "Beauty",
     subtitle: "Products",
     banner: "/category1.jpg",
+    bgColor: "bg-[#F0D4D0]",
     products: [
       {
         image: "/product1.png",
@@ -42,6 +43,7 @@ const categories = [
     title: "Kitchen",
     subtitle: "Products",
     banner: "/category2.jpg",
+    bgColor: "bg-[#E6DCCF]",
     products: [
       {
         image: "/kitchen1.png",
@@ -49,12 +51,12 @@ const categories = [
         price: "₹399.00",
       },
       {
-        image: "/kitchen2.png",
+        image: "/kitchen1.png",
         name: "Mugs",
         price: "₹399.00",
       },
       {
-        image: "/kitchen2.png",
+        image: "/kitchen1.png",
         name: "Mugs",
         price: "₹399.00",
       },
@@ -70,6 +72,7 @@ const categories = [
     title: "Powder",
     subtitle: "Products",
     banner: "/category3.png",
+    bgColor: "bg-white",
     products: [
       {
         image: "/powder1.png",
@@ -213,7 +216,7 @@ const CategoryShowcase = () => {
               trigger: wrapper,
               start: "top bottom",
               end: "bottom top",
-              scrub: 2,
+              scrub: 1.2,
             },
           }
         );
@@ -454,7 +457,7 @@ const CategoryShowcase = () => {
                 {category.products.map((product, i) => (
                   <div
                     key={i}
-                    className="product-card group relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] bg-[#F0D4D0] border border-black/[0.04] p-2 sm:p-4 overflow-hidden  shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]">
+                    className={`product-card group relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
 
                     {/* TOP */}
                     <div className="mb-3 flex items-center justify-between">
