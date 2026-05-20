@@ -383,8 +383,7 @@ const CategoryShowcase = () => {
           Explore
         </p>
 
-        <h2 className="title-main text-[#2d3150] text-6xl sm:text-7xl lg:text-8xl font-yellowtail leading-tight"
-        >
+        <h2 className="title-main text-[#2d3150] text-6xl sm:text-7xl lg:text-8xl font-yellowtail leading-tight">
           Category
         </h2>
 
