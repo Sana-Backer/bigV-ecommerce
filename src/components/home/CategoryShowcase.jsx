@@ -398,16 +398,16 @@ const CategoryShowcase = () => {
         {categories.map((category, index) => (
           <div
             key={index}
-            className={`category-block grid grid-cols-1 lg:grid-cols-2 items-start gap-0
+            className={`category-block grid grid-cols-1 md:grid-cols-2 items-start gap-0
               ${index % 2 !== 0
-                ? "lg:[&>*:first-child]:order-2"
+                ? "md:[&>*:first-child]:order-2"
                 : ""
               }
             `}
           >
 
             {/* IMAGE SIDE */}
-            <div className=" parallax-wrapper relative h-[420px] sm:h-[460px] lg:h-[690px] overflow-hidden">
+            <div className="hidden md:block parallax-wrapper relative h-[420px] sm:h-[460px] md:h-[690px] overflow-hidden">
 
               <div className="parallax-image absolute inset-0">
 
@@ -426,18 +426,18 @@ const CategoryShowcase = () => {
             </div>
 
             {/* CONTENT SIDE */}
-            <div className={`flex flex-col justify-between my-auto w-full py-8 lg:py-0 ${index % 2 === 0 ? 'pl-5 sm:pl-7 lg:pl-14' : 'pr-5 sm:pr-7 lg:pr-14'}`}>
+            <div className={`flex flex-col justify-between my-auto w-full py-8 md:py-0 ${index % 2 === 0 ? 'pl-5 sm:pl-7 md:pl-14' : 'pr-5 sm:pr-7 md:pr-14'}`}>
 
               {/* HEADER */}
-              <div className={`flex items-start justify-between mb-2 ${index % 2 === 0 ? 'pr-5 sm:pr-7 lg:pr-14' : 'pl-5 sm:pl-7 lg:pl-14'}`}>
+              <div className={`flex items-start justify-between mb-2 ${index % 2 === 0 ? 'pr-5 sm:pr-7 md:pr-14' : 'pl-5 sm:pl-7 md:pl-14'}`}>
 
                 <div>
 
-                  <h3 className=" text-[#393F59] text-3xl sm:text-4xl lg:text-[2.5rem] leading-none font-DM_Serif_Display">
+                  <h3 className=" text-[#393F59] text-3xl sm:text-4xl md:text-[2.5rem] leading-none font-DM_Serif_Display">
                     {category.title}
                   </h3>
 
-                  <p className=" text-[#2d3150] font-yellowtail text-2xl lg:text-3xl leading-none mt-1">
+                  <p className=" text-[#2d3150] font-yellowtail text-2xl md:text-3xl leading-none mt-1">
                     {category.subtitle}
                   </p>
 
@@ -457,7 +457,7 @@ const CategoryShowcase = () => {
                 {category.products.map((product, i) => (
                   <div
                     key={i}
-                    className={`product-card group relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
+                    className={`product-card group relative w-[280px] sm:w-[320px] md:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-4 sm:p-5 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
 
                     {/* TOP */}
                     <div className="mb-3 flex items-center justify-between">
@@ -474,7 +474,7 @@ const CategoryShowcase = () => {
 
                     {/* IMAGE */}
                     <div
-                      className="relative h-[140px] sm:h-[170px] lg:h-[290px] mb-4 select-none pointer-events-none">
+                      className="relative h-[320px] sm:h-[380px] md:h-[290px] mb-4 select-none pointer-events-none">
 
                       <Image
                         src={product.image}
@@ -509,7 +509,7 @@ const CategoryShowcase = () => {
               </div>
 
               {/* DESCRIPTION */}
-              <p className="mt-5 text-[#767676] text-sm max-w-sm uppercase tracking-wide ">
+              <p className={`mt-5 text-[#6b6a6a] text-xs max-w-xs uppercase tracking-wide ${index % 2 === 0 ? 'pr-5 sm:pr-7 lg:pr-14' : 'pl-5 sm:pl-7 lg:pl-14'}`}>
                 STAY GLOWING AND HEALTHY WITHOUT
                 HAVING TO THINK ABOUT IT.
               </p>
