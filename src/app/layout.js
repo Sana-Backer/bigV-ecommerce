@@ -3,9 +3,17 @@ import {
   Geist_Mono,
   Yellowtail,
   DM_Serif_Display,
+  Actor,
 } from "next/font/google";
 
 import "./globals.css";
+
+const actor = Actor({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-actor",
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +53,7 @@ export default function RootLayout({ children }) {
         ${geistMono.variable}
         ${yellowtail.variable}
         ${dmSerif.variable}
+        ${actor.variable}
         h-full
         antialiased
       `}

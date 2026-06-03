@@ -6,6 +6,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Draggable } from "gsap/Draggable";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 gsap.registerPlugin(ScrollTrigger, Draggable);
 
@@ -455,9 +456,10 @@ const CategoryShowcase = () => {
                 className={`product-grid flex gap-3 sm:gap-4 py-2 will-change-transform overflow-x-scroll overflow-y-visible no-scrollbar cursor-grab select-none ${index % 2 !== 0 ? 'flex-row-reverse' : ''}`}>
 
                 {category.products.map((product, i) => (
-                  <div
+                  <Link
                     key={i}
-                    className={`product-card group relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
+                    href="/products/1"
+                    className={`product-card group block relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
 
                     {/* TOP */}
                     <div className="mb-3 flex items-center justify-between">
@@ -503,7 +505,7 @@ const CategoryShowcase = () => {
 
                     </div>
 
-                  </div>
+                  </Link>
                 ))}
 
               </div>
