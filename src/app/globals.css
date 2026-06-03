@@ -2,6 +2,7 @@
 
 @theme {
   --font-yellowtail: var(--font-yellowtail);
+  --font-dm-serif: var(--font-dm-serif);
 }
 
 @keyframes marquee {
@@ -12,6 +13,9 @@
   100% {
     transform: translateX(-50%);
   }
+}
+html, body {
+  background-color: #F2F2F2;
 }
 
 .animate-marquee {

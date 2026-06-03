@@ -375,7 +375,7 @@ const CategoryShowcase = () => {
   return (
     <section
       ref={sectionRef}
-      className="bg-[#f1f0ee] py-10 overflow-hidden"
+      className=" py-10 overflow-hidden"
     >
 
       {/* TITLE */}

@@ -209,7 +209,7 @@ const PicksForYou = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative h-[760vh] bg-[#f1f0ee]">
+    <section ref={sectionRef} className="relative h-[760vh] ">
       <div className="sticky top-0 flex h-screen min-h-[620px] items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 flex items-center justify-center overflow-hidden px-4">
           <h2
