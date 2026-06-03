@@ -458,8 +458,8 @@ const CategoryShowcase = () => {
                 {category.products.map((product, i) => (
                   <Link
                     key={i}
-                    className={`product-card group relative w-[280px] sm:w-[320px] md:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-4 sm:p-5 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
-
+                   href="/products/1"
+                    className={`product-card group block relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
                     {/* TOP */}
                     <div className="mb-3 flex items-center justify-between">
 

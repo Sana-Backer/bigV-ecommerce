@@ -7,7 +7,7 @@ const ProductHero = () => {
   return (
     <>
       {/* HERO SECTION */}
-      <section className="sticky top-0 h-screen w-[100vw] -z-10 overflow-hidden">
+      <section className="sticky top-0 h-screen w-full z-10 overflow-hidden">
 
         {/* Navbar */}
         <Navbar />
