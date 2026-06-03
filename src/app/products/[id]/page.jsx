@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Footer from "@/components/Footer";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -827,12 +828,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* ========================================================================= */}
       {/* FOOTER */}
       {/* ========================================================================= */}
-      <footer className="py-12 border-t border-[#2d3150]/10 text-center bg-[#f1f0ee] text-[#767676] relative z-10">
-        <p className="text-xs tracking-widest font-bold uppercase text-[#2d3150]">© 2026 LUMORA. All rights reserved.</p>
-        <p className="text-[10px] tracking-[0.15em] font-medium opacity-60 mt-1 uppercase text-[#2d3150]/70">
-          Sleek Design engineered with Next.js, Tailwind CSS and GSAP.
-        </p>
-      </footer>
+      <Footer />
 
     </main>
   );

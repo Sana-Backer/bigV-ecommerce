@@ -6,6 +6,8 @@ import ProductLayout from "./components/ProductLayout";
 import SidebarFilter from "./components/SidebarFilter";
 import ProductGrid from "./components/ProductGrid";
 import { MOCK_PRODUCTS, CATEGORIES } from "@/lib/mockData";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
 
 
 
@@ -30,6 +32,7 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen flex flex-col selection:bg-[#2d3150] selection:text-white">
+      <Navbar />
       {/* Main Product Hero section */}
       <ProductHero />
 
@@ -58,10 +61,7 @@ export default function ProductsPage() {
       </ProductLayout>
 
       {/* Premium Footer */}
-      <footer className="py-12 border-t border-[#2d3150]/10 text-center bg-[#f1f0ee] text-[#767676]">
-        <p className="text-sm tracking-widest font-light uppercase">© 2026 LUMORA. All rights reserved.</p>
-        <p className="text-[10px] tracking-widest opacity-60 mt-1 uppercase">Sleek Design engineered with Next.js and Tailwind CSS.</p>
-      </footer>
+     <Footer />
     </div>
   );
 }

@@ -62,7 +62,7 @@ const Footer = () => {
   }, []);
 
   return (
-    <footer ref={footerRef} className="pt-19 md:pt-16 lg:pt-20 w-full overflow-hidden ">
+    <footer ref={footerRef} className=" w-full overflow-hidden ">
       {/* Banner Image Container */}
       <div className="relative w-full h-[460px] md:h-[500px] lg:h-[600px] overflow-hidden">
         <div

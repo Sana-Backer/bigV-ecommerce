@@ -1,16 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import Navbar from "@/components/Navbar";
 
 const ProductHero = () => {
   return (
     <>
       {/* HERO SECTION */}
-      <section className="sticky top-0 h-screen w-full z-10 overflow-hidden">
-
-        {/* Navbar */}
-        <Navbar />
+      {/* <section className="sticky top-0 h-screen w-full z-0 overflow-hidden"> */}
+      <section className="sticky top-0  md:h-screen w-full overflow-hidden">
 
         {/* Hero Image */}
         <div className="relative w-full h-full">
