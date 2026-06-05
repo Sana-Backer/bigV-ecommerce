@@ -193,44 +193,12 @@ const ConnectWithUs = () => {
 
                     {/* IMAGE WRAPPER */}
                     <div
-                        className="
-              connect-image-wrapper
-              relative
-
-              w-full
-              max-w-[1400px]
-
-              flex
-              justify-center
-
-              mt-6
-              sm:mt-0
-              lg:-mt-1
-            "
-                    >
+                        className="connect-image-wrapper relative w-full max-w-[1400px] flex justify-center mt-6 sm:mt-0 lg:-mt-1">
 
                         {/* LEFT CARD */}
                         <div className="hidden sm:block absolute left-0 top-[1px] sm:top-[1px] lg:top-[70px] z-20 will-change-transform">
                             <div
-                                className="
-                    left-card
-
-               w-[100px]
-    sm:w-[240px]
-    lg:w-[280px]
-
-    h-[130px]
-    sm:h-[260px]
-    lg:h-[250px]
-
-                    overflow-hidden
-
-                    
-
-                    will-change-transform
-                  "
-                            >
-
+                                className="left-card w-[100px] sm:w-[240px] lg:w-[280px] h-[130px] sm:h-[260px] lg:h-[250px] overflow-hidden will-change-transform">
                                 <Image
                                     src="/img-left.png"
                                     alt="Skincare dropper bottles"
@@ -252,8 +220,7 @@ const ConnectWithUs = () => {
                 items-center
 
                 z-10
-              "
-                        >
+              " >
 
                             <div className=" will-change-transform">
                                 <div
