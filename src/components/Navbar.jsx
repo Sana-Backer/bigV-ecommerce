@@ -6,6 +6,7 @@ import Link from "next/link";
 
 const Navbar = ({ theme = "dark" }) => {
   const isDark = theme === "dark";
+  const isWhite = theme === "white";
   const [isVisible, setIsVisible] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -36,7 +37,7 @@ const Navbar = ({ theme = "dark" }) => {
   }, [lastScrollY]);
 
   // Dynamic classes for text and background
-  const textColorClass = isScrolled ? "text-[#353B50]" : (isDark ? "text-white" : "text-[#353B50]");
+  const textColorClass = isScrolled ? "text-[#353B50]" : (isDark ? "text-white" : (isWhite ? "text-[#393F59]" : "text-black"));
   const bgClass = isScrolled ? "bg-[#F2F2F2]/95 backdrop-blur-md shadow-sm" : "bg-transparent";
 
   return (
@@ -56,7 +57,7 @@ const Navbar = ({ theme = "dark" }) => {
           {/* Nav Links */}
           <nav className={`hidden md:flex items-center gap-10 ${textColorClass} text-sm font-medium transition-colors duration-500`}>
             <Link href="/products" className="hover:opacity-80 transition-opacity">Shop</Link>
-            <Link href="#" className="hover:opacity-80 transition-opacity">About Us</Link>
+            <Link href="/about-us" className="hover:opacity-80 transition-opacity">About Us</Link>
             <Link href="#" className="hover:opacity-80 transition-opacity">Blog</Link>
             <Link href="#" className="hover:opacity-80 transition-opacity">Contact</Link>
           </nav>
