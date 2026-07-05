@@ -41,7 +41,7 @@ const Navbar = ({ theme = "dark" }) => {
   const bgClass = isScrolled ? "bg-[#F2F2F2]/95 backdrop-blur-md shadow-sm" : "bg-transparent";
 
   return (
-    <header 
+    <header
       className={`fixed top-0 left-0 z-50 w-full transition-all duration-500 ${bgClass} ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
     >
       <div className="max-w-[1400px] mx-auto px-6 lg:px-10">

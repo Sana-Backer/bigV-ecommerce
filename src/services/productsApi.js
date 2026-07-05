@@ -1,0 +1,34 @@
+import { api } from "./serverUrl";
+import { commonAPI } from "./commonAPI";
+
+export const addProductApi = async (reqBody) => {
+    return await commonAPI("POST", `${api}/products/`, reqBody);
+};
+
+export const getProductsApi = async () => {
+    return await commonAPI("GET", `${api}/products/`, "");
+};
+
+export const getProductDetailApi = async (id) => {
+    return await commonAPI("GET", `${api}/products/${id}/`, "");
+};
+
+export const updateProductApi = async (id, reqBody) => {
+    return await commonAPI("PUT", `${api}/products/${id}/`, reqBody);
+};
+
+export const deleteProductApi = async (id) => {
+    return await commonAPI("DELETE", `${api}/products/${id}/`, "");
+};
+
+export const addProductImageApi = async (productId, reqBody, reqHeader) => {
+    return await commonAPI("POST", `${api}/products/${productId}/images/`, reqBody, reqHeader);
+};
+
+export const addProductVariantApi = async (productId, reqBody) => {
+    return await commonAPI("POST", `${api}/products/${productId}/variants/`, reqBody);
+};
+
+export const updateProductVariantApi = async (variantId, reqBody) => {
+    return await commonAPI("PUT", `${api}/variants/${variantId}/`, reqBody);
+};
