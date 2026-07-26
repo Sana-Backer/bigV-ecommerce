@@ -17,8 +17,9 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
-import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi } from "@/services/productsApi";
+import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi, getProductVariantsApi, deleteProductVariantApi, deleteProductImageApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
+import ManageVariantsSection from "@/components/ManageVariantsSection";
 
 export default function AdminProducts() {
   const [viewMode, setViewMode] = useState("list"); // "list" | "add" | "edit"
@@ -31,12 +32,20 @@ export default function AdminProducts() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [existingImageIds, setExistingImageIds] = useState({});
+
+  // Variant States
+  const [variantProduct, setVariantProduct] = useState(null);
+
+  // Dynamic Product Creation Variants
+  const [productVariants, setProductVariants] = useState([]);
+  const [availableVariantNames, setAvailableVariantNames] = useState([]);
 
   // Form state
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: "399.00",
+    price: "0",
     stock: "0",
     category: "",
     isActive: true,
@@ -89,6 +98,22 @@ export default function AdminProducts() {
     try {
       const response = await getProductsApi();
       if (response && response.status === 200 && response.data?.status === "success") {
+        if (response.data.data.length > 0) {
+          const firstProductId = response.data.data[0].id;
+          try {
+            const variantsRes = await getProductVariantsApi(firstProductId);
+            if (variantsRes && variantsRes.status === 200) {
+              const data = variantsRes.data?.status === "success" ? variantsRes.data.data : variantsRes.data;
+              const names = (data || [])
+                .filter(v => v.name && v.name.trim() !== "" && v.name !== "Default Variant")
+                .map(v => v.name.trim());
+              setAvailableVariantNames(Array.from(new Set(names)));
+            }
+          } catch (err) {
+            console.error("Error fetching variants via getProductVariantsApi:", err);
+          }
+        }
+
         const mapped = response.data.data.map(product => {
           // If variants exist, calculate stock and status dynamically
           let stock = 0;
@@ -106,7 +131,8 @@ export default function AdminProducts() {
             stock: stock,
             status: stock > 0 ? "In Stock" : "Out of Stock",
             statusClass: stock > 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600",
-            isActive: product.is_active
+            isActive: product.is_active,
+            sku: product.sku
           };
         });
         setProductList(mapped);
@@ -126,6 +152,23 @@ export default function AdminProducts() {
     fetchProducts();
   }, []);
 
+  const startManageVariants = (product) => {
+    setVariantProduct(product);
+    setViewMode("variants");
+  };
+
+  const addVariantField = () => {
+    setProductVariants(prev => [...prev, { name: "", price: formData.price || "0", stock: "0" }]);
+  };
+
+  const removeVariantField = (index) => {
+    setProductVariants(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleVariantFieldChange = (index, field, value) => {
+    setProductVariants(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  };
+
   const handleImageChange = (key, file) => {
     if (file) {
       const url = URL.createObjectURL(file);
@@ -134,7 +177,19 @@ export default function AdminProducts() {
     }
   };
 
-  const removeImage = (key) => {
+  const removeImage = async (key) => {
+    if (editingProduct && existingImageIds[key]) {
+      try {
+        await deleteProductImageApi(existingImageIds[key]);
+        const newExistingIds = { ...existingImageIds };
+        delete newExistingIds[key];
+        setExistingImageIds(newExistingIds);
+      } catch (err) {
+        console.error("Failed to delete image from server:", err);
+        alert("Failed to delete image. Please try again.");
+        return; // Exit early if server deletion fails
+      }
+    }
     setImages((prev) => ({ ...prev, [key]: null }));
     setImageFiles((prev) => ({ ...prev, [key]: null }));
     if (fileRefs[key].current) {
@@ -146,7 +201,7 @@ export default function AdminProducts() {
     setFormData({
       name: "",
       description: "",
-      price: "399.00",
+      price: "000.00",
       stock: "0",
       category: categoriesList[0]?.id || "",
       isActive: true,
@@ -168,6 +223,8 @@ export default function AdminProducts() {
       other4: null,
     });
     setEditingProduct(null);
+    setProductVariants([]);
+    setExistingImageIds({});
     setViewMode("list");
   };
 
@@ -178,7 +235,7 @@ export default function AdminProducts() {
       if (response && response.status === 200 && response.data?.status === "success") {
         const prodDetail = response.data.data;
         setEditingProduct(prodDetail);
-        
+
         const defaultVariant = prodDetail.variants?.find(v => v.is_default) || prodDetail.variants?.[0];
         const stockQty = defaultVariant ? defaultVariant.stock_quantity.toString() : "0";
 
@@ -199,16 +256,19 @@ export default function AdminProducts() {
           other3: null,
           other4: null,
         };
-        
+
+        const newExistingIds = {};
         if (prodDetail.images && prodDetail.images.length > 0) {
           prodDetail.images.forEach((imgObj, idx) => {
             const keys = ["main", "close", "other1", "other2", "other3", "other4"];
             if (idx < keys.length) {
               newImages[keys[idx]] = imgObj.image;
+              newExistingIds[keys[idx]] = imgObj.id;
             }
           });
         }
         setImages(newImages);
+        setExistingImageIds(newExistingIds);
         setImageFiles({
           main: null,
           close: null,
@@ -217,6 +277,27 @@ export default function AdminProducts() {
           other3: null,
           other4: null,
         });
+
+        if (prodDetail.variants && prodDetail.variants.length > 0) {
+          const mappedVariants = prodDetail.variants.map(v => ({
+            id: v.id,
+            name: v.name,
+            sku: v.sku,
+            attributes: v.attributes,
+            weight: v.weight,
+            price: v.price?.toString() || "0",
+            stock: v.stock_quantity?.toString() || "0",
+            is_default: v.is_default
+          }));
+          setProductVariants(mappedVariants);
+
+          const newNames = prodDetail.variants.map(v => v.name).filter(Boolean);
+          if (newNames.length > 0) {
+            setAvailableVariantNames(prev => Array.from(new Set([...prev, ...newNames])));
+          }
+        } else {
+          setProductVariants([]);
+        }
 
         setViewMode("edit");
       } else {
@@ -280,24 +361,33 @@ export default function AdminProducts() {
           const createdProduct = response.data.data;
           const createdProductId = createdProduct.id;
 
-          // 1. Create default product variant with stock & price
-          const stockNum = parseInt(formData.stock) || 0;
-          const variantBody = {
-            name: "Default Variant",
-            sku: `${sku}-DEF`,
-            attributes: { size: "Default" },
-            price: basePrice.toFixed(2),
-            sale_price: null,
-            stock_quantity: stockNum,
-            weight: "0.100",
-            is_default: true,
-            is_active: true
-          };
+          // 1. Create variants based on the productVariants list, or create one default if empty
+          const variantsToCreate = productVariants.length > 0
+            ? productVariants
+            : [{ name: "Default", price: basePrice.toFixed(2), stock: formData.stock }];
 
-          try {
-            await addProductVariantApi(createdProductId, variantBody);
-          } catch (vErr) {
-            console.error("Failed to create default variant:", vErr);
+          for (let i = 0; i < variantsToCreate.length; i++) {
+            const v = variantsToCreate[i];
+            const cleanVPrice = (v.price || "0").toString().replace(/[^\d.]/g, "");
+            const vPrice = parseFloat(cleanVPrice) || basePrice;
+            const nameSlug = (v.name || "DEF").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+            const variantBody = {
+              name: v.name || "Default",
+              sku: `${sku}-VAR-${nameSlug}-${i}-${Date.now().toString().slice(-3)}`,
+              attributes: { size: v.name || "Default" },
+              price: vPrice.toFixed(2),
+              sale_price: null,
+              stock_quantity: parseInt(v.stock) || 0,
+              weight: "0.100",
+              is_default: i === 0, // first one is default
+              is_active: true
+            };
+            try {
+              await addProductVariantApi(createdProductId, variantBody);
+            } catch (vErr) {
+              console.error("Failed to create variant:", v.name, vErr);
+            }
           }
 
           // 2. Upload images sequentially if any to prevent database lock issues
@@ -332,27 +422,51 @@ export default function AdminProducts() {
       } else if (viewMode === "edit" && editingProduct) {
         const response = await updateProductApi(editingProduct.id, reqBody);
         if (response && (response.status === 200 || response.status === 204)) {
-          
-          // 1. Update default variant if exists
-          const defaultVariant = editingProduct.variants?.find(v => v.is_default) || editingProduct.variants?.[0];
-          if (defaultVariant) {
-            const stockNum = parseInt(formData.stock) || 0;
+
+          const variantsToSave = productVariants.length > 0
+            ? productVariants
+            : [{ name: "Default Variant", price: basePrice.toFixed(2), stock: formData.stock }];
+
+          for (let i = 0; i < variantsToSave.length; i++) {
+            const v = variantsToSave[i];
+            const cleanVPrice = (v.price || "0").toString().replace(/[^\d.]/g, "");
+            const vPrice = parseFloat(cleanVPrice) || basePrice;
+            const nameSlug = (v.name || "DEF").toUpperCase().replace(/[^A-Z0-9]/g, "");
+            const stockNum = parseInt(v.stock) || 0;
+
             const variantBody = {
-              name: defaultVariant.name || "Default Variant",
-              sku: defaultVariant.sku || `${sku}-DEF`,
-              attributes: defaultVariant.attributes || { size: "Default" },
-              price: basePrice.toFixed(2),
+              name: v.name || "Default",
+              sku: v.sku || `${sku}-VAR-${nameSlug}-${i}-${Date.now().toString().slice(-3)}`,
+              attributes: v.attributes || { size: v.name || "Default" },
+              price: vPrice.toFixed(2),
               sale_price: null,
               stock_quantity: stockNum,
-              weight: defaultVariant.weight || "0.100",
-              is_default: true,
+              weight: v.weight || "0.100",
+              is_default: i === 0,
               is_active: true
             };
 
             try {
-              await updateProductVariantApi(defaultVariant.id, variantBody);
+              if (v.id) {
+                await updateProductVariantApi(v.id, variantBody);
+              } else {
+                await addProductVariantApi(editingProduct.id, variantBody);
+              }
             } catch (vErr) {
               console.error("Failed to update product variant:", vErr);
+            }
+          }
+
+          if (editingProduct.variants && editingProduct.variants.length > 0) {
+            const currentVariantIds = variantsToSave.map(v => v.id).filter(id => id);
+            for (const oldVar of editingProduct.variants) {
+              if (!currentVariantIds.includes(oldVar.id)) {
+                try {
+                  await deleteProductVariantApi(oldVar.id);
+                } catch (delErr) {
+                  console.error("Failed to delete product variant:", delErr);
+                }
+              }
             }
           }
 
@@ -411,7 +525,7 @@ export default function AdminProducts() {
         {/* Header with toggle */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={resetForm}
               className="p-2 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer text-slate-500 hover:text-slate-800 mr-1"
             >
@@ -424,19 +538,17 @@ export default function AdminProducts() {
               </span>
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold text-[#553C9A]">Product Active</span>
             <button
               onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                formData.isActive ? "bg-[#553C9A]" : "bg-slate-200"
-              }`}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.isActive ? "bg-[#553C9A]" : "bg-slate-200"
+                }`}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  formData.isActive ? "translate-x-5" : "translate-x-0"
-                }`}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isActive ? "translate-x-5" : "translate-x-0"
+                  }`}
               />
             </button>
           </div>
@@ -444,7 +556,7 @@ export default function AdminProducts() {
 
         {/* Form Container */}
         <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          
+
           {/* Left Column */}
           <div className="space-y-6">
             {/* Basic Information Card */}
@@ -452,7 +564,7 @@ export default function AdminProducts() {
               <h2 className="text-lg font-bold text-slate-800 border-b border-slate-50 pb-2">
                 Basic Information
               </h2>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">Product Name</label>
                 <input
@@ -475,49 +587,94 @@ export default function AdminProducts() {
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium resize-none"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Category</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium capitalize"
+                >
+                  {categoriesList.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Price & Stock Card */}
+            {/* Price  */}
             <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs space-y-4">
-              <h2 className="text-lg font-bold text-slate-800 border-b border-slate-50 pb-2">
-                Price & Inventory
-              </h2>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Price (₹)</label>
-                  <input
-                    type="text"
-                    value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium capitalize"
-                  >
-                    {categoriesList.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                <h2 className="text-lg font-bold text-slate-800">
+                  Price by Variants
+                </h2>
+                <button
+                  type="button"
+                  onClick={addVariantField}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#553C9A] hover:text-[#432F7A] transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Variant
+                </button>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 font-bold block mb-1">Stock</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.stock}
-                  onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
-                />
-              </div>
+              {/*  Product Variants Lists */}
+              {productVariants.length > 0 && (
+                <div className="border-t border-slate-100 pt-2 space-y-2">
+                  {productVariants.map((item, index) => (
+                    <div key={index} className="grid grid-cols-3 gap-3 items-end bg-slate-50/50 p-2 rounded-2xl border border-slate-100 relative group animate-in slide-in-from-top-2 duration-200">
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500">Variant Name</label>
+                        <select
+                          required
+                          value={item.name}
+                          onChange={(e) => handleVariantFieldChange(index, "name", e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                        >
+                          <option value="">Select Variant</option>
+                          {availableVariantNames.map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500">Price (₹)</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="399.00"
+                          value={item.price}
+                          onChange={(e) => handleVariantFieldChange(index, "price", e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                        />
+                      </div>
+
+                      <div className="space-y-1 relative pr-8">
+                        <label className="text-[10px] font-bold text-slate-500">Stock</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          value={item.stock}
+                          onChange={(e) => handleVariantFieldChange(index, "stock", e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVariantField(index)}
+                          className="absolute right-1 bottom-1.5 p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}
@@ -556,7 +713,7 @@ export default function AdminProducts() {
               ].map(({ label, key }) => (
                 <div key={key} className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-600 block">{label}</label>
-                  
+
                   <div className="relative group border-2 border-dashed border-slate-200 rounded-2xl h-36 flex flex-col items-center justify-center p-3 text-center transition-colors hover:border-[#553C9A] bg-slate-50/50">
                     <input
                       type="file"
@@ -566,7 +723,7 @@ export default function AdminProducts() {
                       className="hidden"
                       id={`file-${key}`}
                     />
-                    
+
                     {images[key] ? (
                       <div className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden p-1.5 bg-white">
                         <img
@@ -597,9 +754,18 @@ export default function AdminProducts() {
               ))}
             </div>
           </div>
-
         </form>
       </div>
+    );
+  }
+
+  if (viewMode === "variants") {
+    return (
+      <ManageVariantsSection
+        product={variantProduct}
+        onBack={() => setViewMode("list")}
+        onRefreshProducts={fetchProducts}
+      />
     );
   }
 
@@ -615,13 +781,28 @@ export default function AdminProducts() {
             Manage your inventory, pricing, and skincare variants
           </p>
         </div>
-        <button 
-          onClick={() => setViewMode("add")}
-          className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Product</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (productList.length > 0) {
+                startManageVariants(productList[0]);
+              } else {
+                alert("No products available to manage variants.");
+              }
+            }}
+            className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer"
+          >
+            <Layers className="w-4 h-4" />
+            <span>Product variant</span>
+          </button>
+          <button
+            onClick={() => setViewMode("add")}
+            className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Overview stats cards */}
@@ -682,8 +863,8 @@ export default function AdminProducts() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-2 py-1 rounded-xl text-xs font-semibold transition-all capitalize border ${selectedCategory === cat
-                    ? "bg-[#2C3B5E] text-white border-[#2C3B5E]"
-                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                  ? "bg-[#2C3B5E] text-white border-[#2C3B5E]"
+                  : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
                   }`}
               >
                 {cat === "All" ? "All Categories" : cat}
@@ -701,7 +882,7 @@ export default function AdminProducts() {
               <tr className="bg-[#EAF5FF] text-[11px] font-extrabold text-[#7E8B9B] uppercase tracking-wider">
                 <th className="py-4.5 px-6">Product Details</th>
                 <th className="py-4.5 px-6">Category</th>
-                <th className="py-4.5 px-6">Price</th>
+                {/* <th className="py-4.5 px-6">Price</th> */}
                 <th className="py-4.5 px-6">Stock Status</th>
                 <th className="py-4.5 px-6">Quantity</th>
                 <th className="py-4.5 px-6 text-center">Actions</th>
@@ -739,7 +920,7 @@ export default function AdminProducts() {
                     </td>
 
                     {/* Price */}
-                    <td className="py-4.5 px-6 text-slate-800 font-bold">{product.price}</td>
+                    {/* <td className="py-4.5 px-6 text-slate-800 font-bold">{product.price}</td> */}
 
                     {/* Stock status tag */}
                     <td className="py-4.5 px-6">
@@ -763,6 +944,14 @@ export default function AdminProducts() {
                           title="View Product Details"
                         >
                           <Eye className="w-4.5 h-4.5" />
+                        </button>
+                        {/* Manage Variants button */}
+                        <button
+                          onClick={() => startManageVariants(product)}
+                          className="text-slate-400 hover:text-[#4A5D8A] p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
+                          title="Manage Variants"
+                        >
+                          <Layers className="w-4.5 h-4.5" />
                         </button>
                         {/* Edit button */}
                         <button
@@ -814,14 +1003,14 @@ export default function AdminProducts() {
       {detailProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between px-2 py-2 border-b border-slate-100 shrink-0 bg-slate-50/50">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-[#2C3B5E]" />
                 <h2 className="text-md font-medium text-[#2C3B5E]">Product Detail</h2>
               </div>
-              <button 
+              <button
                 onClick={() => setDetailProduct(null)}
                 className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
               >
@@ -831,16 +1020,16 @@ export default function AdminProducts() {
 
             {/* Modal Body */}
             <div className="p-2 overflow-y-auto space-y-2 flex-1 text-slate-700">
-              
+
               {/* Product Info Summary */}
               <div className="flex flex-col md:flex-row gap-4">
-                
+
                 {/* Images display */}
                 <div className="w-full md:w-2/5 shrink-0 space-y-1">
                   <div className="aspect-square bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center">
-                    <img 
-                      src={detailProduct.images?.[activeImageIndex]?.image || detailProduct.images?.[0]?.image || "/product1.png"} 
-                      alt={detailProduct.name} 
+                    <img
+                      src={detailProduct.images?.[activeImageIndex]?.image || detailProduct.images?.[0]?.image || "/product1.png"}
+                      alt={detailProduct.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.target.style.display = "none";
@@ -853,14 +1042,13 @@ export default function AdminProducts() {
                   {detailProduct.images && detailProduct.images.length > 1 && (
                     <div className="grid grid-cols-4 gap-2">
                       {detailProduct.images.map((imgObj, idx) => (
-                        <div 
-                          key={imgObj.id || idx} 
+                        <div
+                          key={imgObj.id || idx}
                           onClick={() => setActiveImageIndex(idx)}
-                          className={`aspect-square bg-slate-50 border rounded-lg overflow-hidden cursor-pointer transition-all ${
-                            activeImageIndex === idx 
-                              ? "border-[#2C3B5E] ring-2 ring-[#2C3B5E]/20" 
-                              : "border-slate-100 hover:border-slate-300"
-                          }`}
+                          className={`aspect-square bg-slate-50 border rounded-lg overflow-hidden cursor-pointer transition-all ${activeImageIndex === idx
+                            ? "border-[#2C3B5E] ring-2 ring-[#2C3B5E]/20"
+                            : "border-slate-100 hover:border-slate-300"
+                            }`}
                         >
                           <img src={imgObj.image} alt="Thumbnail" className="w-full h-full object-cover" />
                         </div>
@@ -899,11 +1087,10 @@ export default function AdminProducts() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status</span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase mt-0.5 border ${
-                        detailProduct.in_stock
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                          : "bg-rose-50 text-rose-600 border-rose-100"
-                      }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase mt-0.5 border ${detailProduct.in_stock
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        : "bg-rose-50 text-rose-600 border-rose-100"
+                        }`}>
                         {detailProduct.in_stock ? "In Stock" : "Out of Stock"}
                       </span>
                     </div>
@@ -915,19 +1102,19 @@ export default function AdminProducts() {
                       {detailProduct.is_active ? "Active & Visible in Catalog" : "Inactive / Hidden"}
                     </span>
                   </div>
+                  {/* Description */}
+
+                  {detailProduct.description && (
+                    <div className="space-y-1.5 border-t border-slate-100 pt-4 text-left">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-bold">Description</span>
+                      <p className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        {detailProduct.description}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
               </div>
-
-              {/* Description */}
-              {detailProduct.description && (
-                <div className="space-y-1.5 border-t border-slate-100 pt-4 text-left">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-bold">Description</span>
-                  <p className="text-sm font-medium text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                    {detailProduct.description}
-                  </p>
-                </div>
-              )}
 
               {/* Variants list */}
               {detailProduct.variants && detailProduct.variants.length > 0 && (
@@ -954,13 +1141,13 @@ export default function AdminProducts() {
 
             {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 shrink-0 bg-slate-50/50">
-              <button 
+              <button
                 onClick={() => setDetailProduct(null)}
                 className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all cursor-pointer shadow-xs"
               >
                 Close Details
               </button>
-              <button 
+              <button
                 onClick={() => {
                   setDetailProduct(null);
                   startEdit(detailProduct);

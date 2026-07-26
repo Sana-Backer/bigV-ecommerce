@@ -63,7 +63,7 @@ export default function ProductGrid({
 
   if (isLoading) {
     return (
-      <div className="w-full flex flex-col gap-12 pb-16">
+      <div className="w-full flex flex-col gap-12 pb-1">
         <div className="w-full">
           <div className="flex justify-between items-end mb-6">
             <div>
@@ -108,7 +108,7 @@ export default function ProductGrid({
   );
 
   return (
-    <div className="w-full flex flex-col gap-[80px] pb-16">
+    <div className="w-full flex flex-col gap-6 pb-6">
       {sortedCategories.map((category) => (
         <div key={category} className="w-full flex flex-col gap-[26px]">
           {/* Section Header */}

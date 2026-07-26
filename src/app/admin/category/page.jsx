@@ -24,22 +24,10 @@ import {
 export default function CategoryManagement() {
   const [viewMode, setViewMode] = useState("list"); // "list" | "add" | "edit"
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(10);
   const [selectedParent, setSelectedParent] = useState("All");
   const [isLoading, setIsLoading] = useState(false);
   
-  // Initial categories matching the user's screenshot as backup fallback
-  const initialCategories = [
-    {
-      id: "cat-1",
-      name: "Skincare",
-      description: "Premium dermatological solutions for all skin types.",
-      products: 124,
-      isActive: true,
-      image: "/category3.png",
-      parent: null,
-    }
-  ];
 
   const [categoryList, setCategoryList] = useState([]);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -65,11 +53,11 @@ export default function CategoryManagement() {
         console.log(response.data);
         
       } else {
-        setCategoryList(initialCategories);
+        setCategoryList([]);
       }
     } catch (error) {
       console.error("Failed to fetch categories from API:", error);
-      setCategoryList(initialCategories);
+      setCategoryList([]);
     } finally {
       setIsLoading(false);
     }

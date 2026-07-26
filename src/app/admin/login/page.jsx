@@ -37,8 +37,12 @@ export default function AdminLogin() {
                 if (token && user) {
                     // Verify that user has an administrative role
                     if (user.role === "admin" || user.role === "manager" || user.role === "staff") {
+                        const refresh = payload.data?.refresh;
                         localStorage.setItem("adminToken", token);
                         localStorage.setItem("adminUser", JSON.stringify(user));
+                        if (refresh) {
+                            localStorage.setItem("adminRefreshToken", refresh);
+                        }
                         router.push("/admin/dashboard");
                     } else {
                         setError("Access denied. You do not have administrative privileges.");

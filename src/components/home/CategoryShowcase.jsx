@@ -1,43 +1,31 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Draggable } from "gsap/Draggable";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { getProductsByCategoryApi } from "@/services/productsApi";
+import { BASEURL } from "@/services/serverUrl";
 
 gsap.registerPlugin(ScrollTrigger, Draggable);
 
 const categories = [
   {
+    title: "Powder",
+    subtitle: "Products",
+    banner: "/category3.png",
+    bgColor: "bg-white",
+    products: [],
+  },
+  {
     title: "Beauty",
     subtitle: "Products",
     banner: "/category1.jpg",
     bgColor: "bg-[#F0D4D0]",
-    products: [
-      {
-        image: "/product1.png",
-        name: "Face Mist",
-        price: "₹399.00",
-      },
-      {
-        image: "/product2.png",
-        name: "Lipstick",
-        price: "₹399.00",
-      },
-      {
-        image: "/product2.png",
-        name: "Lipstick",
-        price: "₹399.00",
-      },
-      {
-        image: "/product1.png",
-        name: "Lipstick",
-        price: "₹399.00",
-      },
-    ],
+    products: [],
   },
 
   {
@@ -45,62 +33,48 @@ const categories = [
     subtitle: "Products",
     banner: "/category2.jpg",
     bgColor: "bg-[#E6DCCF]",
-    products: [
-      {
-        image: "/kitchen1.png",
-        name: "Wood Spoon",
-        price: "₹399.00",
-      },
-      {
-        image: "/kitchen1.png",
-        name: "Mugs",
-        price: "₹399.00",
-      },
-      {
-        image: "/kitchen1.png",
-        name: "Mugs",
-        price: "₹399.00",
-      },
-      {
-        image: "/kitchen2.png",
-        name: "Mugs",
-        price: "₹399.00",
-      },
-    ],
-  },
-
-  {
-    title: "Powder",
-    subtitle: "Products",
-    banner: "/category3.png",
-    bgColor: "bg-white",
-    products: [
-      {
-        image: "/powder1.png",
-        name: "Chilli Powder",
-        price: "₹399.00",
-      },
-      {
-        image: "/powder2.png",
-        name: "Turmeric",
-        price: "₹399.00",
-      },
-      {
-        image: "/powder1.png",
-        name: "Chilli Powder",
-        price: "₹399.00",
-      },
-      {
-        image: "/powder2.png",
-        name: "Turmeric",
-        price: "₹399.00",
-      },
-    ],
+    products: [],
   },
 ];
 
 const CategoryShowcase = () => {
   const sectionRef = useRef(null);
+  const [categoriesData, setCategoriesData] = useState(categories);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const slugs = ["powder", "beauty", "kitchen"];
+        const updatedCategories = JSON.parse(JSON.stringify(categories)); // deep copy
+
+        for (let i = 0; i < slugs.length; i++) {
+          try {
+            const res = await getProductsByCategoryApi(slugs[i]);
+            if (res && res.status === 200) {
+              const data = res.data?.data || res.data;
+              if (data && data.products && data.products.length > 0) {
+                updatedCategories[i].products = data.products.map(p => ({
+                  id: p.id,
+                  image: p.primary_image 
+                    ? (p.primary_image.startsWith('http') ? p.primary_image : (BASEURL.endsWith('/') ? BASEURL.slice(0, -1) : BASEURL) + p.primary_image) 
+                    : "/product1.png",
+                  name: p.name,
+                  price: `₹${p.effective_price || p.base_price || 0}`
+                }));
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to fetch ${slugs[i]} products`, err);
+          }
+        }
+        setCategoriesData(updatedCategories);
+      } catch (error) {
+        console.error("Failed to fetch category products:", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -371,7 +345,7 @@ const CategoryShowcase = () => {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [categoriesData]);
 
   return (
     <section
@@ -396,7 +370,7 @@ const CategoryShowcase = () => {
       {/* CATEGORY LIST */}
       <div>
 
-        {categories.map((category, index) => (
+        {categoriesData.map((category, index) => (
           <div
             key={index}
             className={`category-block grid grid-cols-1 md:grid-cols-2 items-start gap-0
@@ -458,8 +432,8 @@ const CategoryShowcase = () => {
                 {category.products.map((product, i) => (
                   <Link
                     key={i}
-                   href="/products/1"
-                    className={`product-card group block relative w-[150px] sm:w-[170px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
+                    href={product.id ? `/products/${product.id}` : "/products/1"}
+                    className={`product-card group block relative w-[130px] sm:w-[150px] md:w-[180px] lg:w-[240px] flex-shrink-0 rounded-[16px] ${category.bgColor || 'bg-[#F0D4D0]'} border border-black/[0.04] p-2 sm:p-4 overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] transition-all duration-500 ease-out hover:-translate-y-[2px]`}>
                     {/* TOP */}
                     <div className="mb-3 flex items-center justify-between">
 
@@ -475,12 +449,13 @@ const CategoryShowcase = () => {
 
                     {/* IMAGE */}
                     <div
-                      className="relative h-[320px] sm:h-[380px] md:h-[290px] mb-4 select-none pointer-events-none">
+                      className="relative h-[180px] sm:h-[200px] md:h-[220px] lg:h-[290px] mb-4 select-none pointer-events-none">
 
                       <Image
                         src={product.image}
                         alt={product.name}
                         fill
+                        unoptimized={true}
                         draggable={false}
                         className="object-contain scale-[1.01] transition-all duration-700 ease-out group-hover:-translate-y-1 select-none pointer-events-none"
                       />

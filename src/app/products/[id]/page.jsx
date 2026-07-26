@@ -4,15 +4,15 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { 
-  ShoppingBag, 
-  ChevronLeft, 
-  ChevronRight, 
-  RotateCcw, 
-  Truck, 
-  Heart, 
-  ShieldCheck, 
-  Plus, 
+import {
+  ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Truck,
+  Heart,
+  ShieldCheck,
+  Plus,
   Minus,
   CheckCircle,
   HelpCircle,
@@ -22,6 +22,9 @@ import {
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Footer from "@/components/Footer";
+import { getProductDetailApi } from "@/services/productsApi";
+import { addToCartApi } from "@/services/cartApi";
+import { addToWishlistApi } from "@/services/wishlistApi";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -47,7 +50,10 @@ export default function ProductDetailPage({ params: paramsPromise }) {
   const productId = params?.id || "1";
 
   // States
-  const [selectedShade, setSelectedShade] = useState(SHADES[0]);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState(null);
+  const [selectedShade, setSelectedShade] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("about");
   const [cartNotification, setCartNotification] = useState("");
@@ -64,9 +70,14 @@ export default function ProductDetailPage({ params: paramsPromise }) {
   // Shade changes
   const handleShadeChange = (shade) => {
     setSelectedShade(shade);
-    
+    if (shade?.images && shade.images.length > 0) {
+      setActiveImage(shade.images[0].image);
+    } else if (product?.images && product.images.length > 0) {
+      setActiveImage(product.images[0].image);
+    }
+
     // Quick micro-animation for the image swap
-    gsap.fromTo(mainImageRef.current, 
+    gsap.fromTo(mainImageRef.current,
       { scale: 0.9, opacity: 0.5, rotate: -3 },
       { scale: 1, opacity: 1, rotate: 0, duration: 0.5, ease: "power2.out" }
     );
@@ -78,9 +89,48 @@ export default function ProductDetailPage({ params: paramsPromise }) {
   };
 
   // Add to cart handler
-  const handleAddToCart = () => {
-    setCartNotification(`Added ${quantity} x VELOURA MATTE LIPSTICK (${selectedShade.name}) to your bag!`);
-    setTimeout(() => setCartNotification(""), 3500);
+  const handleAddToCart = async () => {
+    if (!product) return;
+
+    try {
+      const payload = {
+        product_id: product.id,
+        quantity: quantity,
+      };
+      if (selectedShade?.id) {
+        payload.variant_id = selectedShade.id;
+      }
+
+      const res = await addToCartApi(payload);
+      if (res.status === 201 || res.status === 200) {
+        setCartNotification(`Added ${quantity} x ${product?.name || "Product"} (${selectedShade?.name || selectedShade?.attributes?.size || ''}) to your bag!`);
+        setTimeout(() => setCartNotification(""), 3500);
+        window.dispatchEvent(new Event("cartUpdated"));
+        window.dispatchEvent(new Event("openCart"));
+      } else {
+        alert("Failed to add to cart");
+      }
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      alert("Something went wrong while adding to cart");
+    }
+  };
+
+  // Add to wishlist handler
+  const handleAddToWishlist = async () => {
+    if (!product) return;
+    try {
+      const res = await addToWishlistApi({ product_id: product.id });
+      if (res.status === 201 || res.status === 200) {
+        setCartNotification(`Added ${product?.name || "Product"} to your wishlist!`);
+        setTimeout(() => setCartNotification(""), 3500);
+      } else {
+        alert("Failed to add to wishlist");
+      }
+    } catch (err) {
+      console.error("Error adding to wishlist:", err);
+      alert("Please log in to add items to your wishlist.");
+    }
   };
 
   // Toggle FAQ Accordion
@@ -88,67 +138,104 @@ export default function ProductDetailPage({ params: paramsPromise }) {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
 
+  // Fetch product data
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await getProductDetailApi(productId);
+        if (res.status === 200 && res.data?.status === "success") {
+          const productData = res.data.data;
+          setProduct(productData);
+          if (productData.images && productData.images.length > 0) {
+            setActiveImage(productData.images[0].image);
+          }
+          if (productData.variants && productData.variants.length > 0) {
+            const defaultVar = productData.variants.find(v => v.is_default) || productData.variants[0];
+            setSelectedShade(defaultVar);
+          }
+          console.log(productData);
+
+        }
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (productId) {
+      fetchProduct();
+    }
+  }, [productId]);
+
   // GSAP Animations
   useEffect(() => {
     const ctx = gsap.context(() => {
       // 1. Initial Hero Animations
       const tl = gsap.timeline();
-      tl.fromTo(".hero-section-bg", 
+      tl.fromTo(".hero-section-bg",
         { opacity: 0 },
         { opacity: 1, duration: 1.4, ease: "power4.inOut" }
       )
-      .fromTo(".hero-product-img",
-        { y: 80, opacity: 0, scale: 0.85 },
-        { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "back.out(1.2)" },
-        "-=0.6"
-      )
-      .fromTo(".animate-fade-up", 
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, stagger: 0.08, duration: 0.8, ease: "power3.out" },
-        "-=0.8"
-      );
+        .fromTo(".hero-product-img",
+          { y: 80, opacity: 0, scale: 0.85 },
+          { y: 0, opacity: 1, scale: 1, duration: 1.2, ease: "back.out(1.2)" },
+          "-=0.6"
+        )
+        .fromTo(".animate-fade-up",
+          { y: 30, opacity: 0 },
+          { y: 0, opacity: 1, stagger: 0.08, duration: 0.8, ease: "power3.out" },
+          "-=0.8"
+        );
 
-      // 2. Mid Section Scroll Animations
-      gsap.fromTo(".mid-text-main",
-        { opacity: 0, y: 50 },
-        {
-          opacity: 1, y: 0, duration: 1.2, ease: "power3.out",
-          scrollTrigger: {
-            trigger: ".mid-text-main",
-            start: "top 85%",
-          }
-        }
-      );
-
+      // 2. Mid Section Scroll Animations (Smooth Element-Level Scroll Scrub)
       gsap.fromTo(".mid-image-left",
-        { opacity: 0, x: -60, rotate: -5 },
+        { opacity: 0, y: 60, x: -40, rotate: -2 },
         {
-          opacity: 1, x: 0, rotate: 0, duration: 1.4, ease: "power3.out",
+          opacity: 1, y: 0, x: 0, rotate: 0,
           scrollTrigger: {
             trigger: ".mid-image-left",
-            start: "top 80%",
+            start: "top 98%",
+            end: "top 50%",
+            scrub: 1,
           }
         }
       );
 
-      gsap.fromTo(".mid-image-right",
-        { opacity: 0, x: 60, rotate: 5 },
+      gsap.fromTo(".mid-text-main",
+        { opacity: 0, y: 70 },
         {
-          opacity: 1, x: 0, rotate: 0, duration: 1.4, ease: "power3.out",
+          opacity: 1, y: 0,
           scrollTrigger: {
-            trigger: ".mid-image-right",
-            start: "top 80%",
+            trigger: ".mid-text-main",
+            start: "top 98%",
+            end: "top 55%",
+            scrub: 1,
           }
         }
       );
 
       gsap.fromTo(".mid-column-fade",
-        { opacity: 0, y: 40 },
+        { opacity: 0, y: 80 },
         {
-          opacity: 1, y: 0, stagger: 0.15, duration: 1, ease: "power3.out",
+          opacity: 1, y: 0, stagger: 0.1,
           scrollTrigger: {
             trigger: ".mid-column-fade",
-            start: "top 88%",
+            start: "top 98%",
+            end: "top 60%",
+            scrub: 1,
+          }
+        }
+      );
+
+      gsap.fromTo(".mid-image-right",
+        { opacity: 0, y: 90, x: 40, rotate: 2 },
+        {
+          opacity: 1, y: 0, x: 0, rotate: 0,
+          scrollTrigger: {
+            trigger: ".mid-image-right",
+            start: "top 98%",
+            end: "top 50%",
+            scrub: 1,
           }
         }
       );
@@ -245,7 +332,14 @@ export default function ProductDetailPage({ params: paramsPromise }) {
 
     }, pageRef);
 
-    return () => ctx.revert();
+    const timer = setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 1000);
+
+    return () => {
+      ctx.revert();
+      clearTimeout(timer);
+    };
   }, []);
 
   // Quick helper to scroll featured carousel
@@ -261,7 +355,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
 
   return (
     <main ref={pageRef} className="bg-[#FFFFFF] text-[#2d3150] min-h-screen overflow-x-hidden selection:bg-[#2d3150] selection:text-white relative">
-      
+
       {/* Dynamic Navbar */}
       <Navbar theme="light" />
 
@@ -276,33 +370,64 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* ========================================================================= */}
       {/* SECTION 1: PRODUCT HERO (SPLIT LAYOUT) */}
       {/* ========================================================================= */}
-      <section className="relative z-0 w-full pt-32 lg:pt-36 pb-0 flex items-start overflow-hidden">
+      <section className="relative z-0 w-full pt-32 lg:pt-30 pb-0 flex items-start overflow-hidden">
         {/* Asymmetric Pink Background - Stops early on Desktop */}
-        <div className={`absolute top-0 left-0 w-full h-full lg:h-[calc(100%-8rem)] -z-10 ${selectedShade.bg} transition-colors duration-700`} />
+        <div className={`absolute top-0 left-0 w-full h-full lg:h-[calc(100%-8rem)] -z-10 ${selectedShade?.bg || "bg-[#F0D4D0]"} transition-colors duration-700`} />
 
         <div className="w-full max-w-[1400px] mx-auto pl-6 pr-6 lg:pl-10 lg:pr-0 relative z-10 flex flex-col lg:flex-row items-start lg:items-stretch justify-between gap-12">
-          
-          {/* Left Side: Product Image */}
-          <div className="w-full lg:w-1/2 flex justify-center items-start relative min-h-[40vh] lg:min-h-[50vh] mb-12 lg:mb-0 pb-12 lg:pb-12">
-            <div ref={mainImageRef} className="hero-product-img relative w-[70vw] sm:w-[50vw] lg:w-[30rem] aspect-[2/3] flex items-start justify-center select-none">
-              <Image
-                src={selectedShade.image}
-                alt="Product Hero"
-                fill
-                priority
+
+          {/* Left Side: Product Image & Gallery */}
+          <div className="w-full lg:w-1/2 flex flex-col-reverse lg:flex-row justify-start items-start gap-4 lg:gap-8 relative mb-2 lg:mb-0">
+
+            {/* Thumbnail Gallery */}
+            {product?.images && product.images.length > 0 && (
+              <div className="flex flex-row lg:flex-col gap-4 w-full lg:w-auto overflow-x-auto lg:overflow-y-auto scrollbar-hide pb-2 lg:pb-0 h-auto lg:max-h-[35rem]">
+                {product.images.map((img, idx) => (
+                  <button
+                    key={img.id || idx}
+                    onClick={() => {
+                      setActiveImage(img.image);
+                      gsap.fromTo(mainImageRef.current,
+                        { opacity: 0.5, scale: 0.96 },
+                        { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }
+                      );
+                    }}
+                    className={`shrink-0 w-20 h-20 sm:w-24 sm:h-24 lg:w-[100px] lg:h-[100px] bg-white border transition-all duration-300 p-2 flex items-center justify-center ${activeImage === img.image
+                      ? "border-[#393F59] shadow-sm"
+                      : "border-transparent hover:border-gray-200"
+                      }`}
+                  >
+                    <img
+                      src={img.image}
+                      alt={img.alt_text || `Thumbnail ${idx + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Main Active Image */}
+            <div
+              ref={mainImageRef}
+              className="hero-product-img relative flex-1 w-full lg:w-auto max-w-[35rem] aspect-square flex items-center justify-center select-none transition-all"
+            >
+              <img
+                src={activeImage || product?.images?.[0]?.image || selectedShade?.image || "/placeholder.png"}
+                alt={product?.name || "Product Hero"}
                 draggable={false}
-                className="object-contain object-top drop-shadow-[0_25px_40px_rgba(0,0,0,0.18)]"
+                className="w-full h-full object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.12)]"
               />
             </div>
           </div>
 
           {/* Right Side: Floating Details Card */}
-          <div className="w-full lg:w-[45%] bg-[#F2F2F2] rounded-none p-8 sm:p-12 lg:p-16 relative z-20">
-            
+          <div className="w-full lg:w-[45%] bg-[#F2F2F2] rounded-none p-4 sm:p-4 lg:p-8 relative z-20">
+
             {/* Badge */}
             <div className="animate-fade-up mb-4 flex items-center">
               <div className="w-[162px] h-[28px] rounded-[15px] border-[0.8px] border-[#767676] flex items-center justify-center">
-                <span 
+                <span
                   className="text-[#130D40] text-[15px] font-normal uppercase leading-none tracking-normal"
                   style={{ fontFamily: "'DM Sans', sans-serif" }}
                 >
@@ -312,85 +437,104 @@ export default function ProductDetailPage({ params: paramsPromise }) {
             </div>
 
             {/* Main Title */}
-            <h1 
+            <h1
               className="animate-fade-up text-4xl md:text-[48px] font-bold uppercase text-[#393F59] mb-3 md:leading-[50px] tracking-normal"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              VELOURA MATTE LIPSTICK
+              {product?.name || "VELOURA MATTE LIPSTICK"}
             </h1>
 
             {/* Shade */}
-            <div className="animate-fade-up flex items-center gap-3 mb-6">
-              <p className="text-sm font-semibold tracking-[0.15em] text-[#C18386] uppercase">
-                SHADE: {selectedShade.name}
-              </p>
-            </div>
+            {/* {selectedShade && (
+              <div className="animate-fade-up flex items-center gap-3 mb-6">
+                <p className="text-sm font-semibold tracking-[0.15em] text-[#C18386] uppercase">
+                  SIZE: {selectedShade?.attributes?.size || selectedShade?.name}
+                </p>
+              </div>
+            )} */}
 
             {/* Price & Size Pill */}
-            <div className="animate-fade-up flex items-center gap-4 mb-8">
+            <div className="animate-fade-up flex items-center gap-4 mb-3">
               <span className="text-3xl font-medium tracking-wide text-[#2d3150]">
-                {selectedShade.price}
+                ₹{selectedShade?.effective_price || product?.effective_price || "0.00"}
               </span>
-              <span className="text-[11px] font-bold tracking-[0.15em] bg-[#2d3150] text-[#F0D4DD] px-3.5 py-1.5 rounded-full">
-                120 ML
-              </span>
+              {selectedShade && (
+                <span className="text-[11px] font-bold tracking-[0.15em] bg-[#2d3150] text-[#F0D4DD] px-3.5 py-1.5 rounded-full uppercase">
+                  {selectedShade?.attributes?.size || selectedShade?.name}
+                </span>
+              )}
             </div>
-
+            {product?.variants && product.variants.length > 0 && (
+              <div className="animate-fade-up mb-8">
+                <p className="text-[11px] tracking-[0.2em] font-bold text-[#2d3150] mb-3 uppercase">SELECT VARIANT</p>
+                <div className="flex items-center gap-3.5">
+                  {product.variants.map((variant, idx) => (
+                    <div key={variant.id || idx} className="flex flex-col items-center gap-1.5">
+                      <button
+                        onClick={() => handleShadeChange(variant)}
+                        title={variant.attributes?.size || variant.name}
+                        className={`w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 relative flex items-center justify-center
+                          ${selectedShade?.id === variant.id
+                            ? "border-[#2d3150] scale-105 shadow-[0_0_12px_rgba(0,0,0,0.08)]"
+                            : "border-transparent"
+                          }
+                        `}
+                      >
+                        <div className="w-10 h-10 rounded-full overflow-hidden border border-black/5 relative bg-white flex items-center justify-center">
+                          <img
+                            src={variant.images?.length > 0 ? variant.images[0].image : (product.images?.length > 0 ? product.images[0].image : '/placeholder.png')}
+                            alt={variant.attributes?.size || variant.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {selectedShade?.id === variant.id && (
+                          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#2d3150] text-white rounded-full flex items-center justify-center text-[10px]">
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                      <span className="text-[10px] font-semibold text-[#2d3150] uppercase tracking-wide">
+                        {variant.attributes?.size || variant.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Description */}
             <div className="animate-fade-up mb-8 max-w-xl">
-              <p className="text-xs sm:text-[13px] leading-[1.8] text-[#5c6080] tracking-wider uppercase font-medium">
-                STEP UP YOUR CLEANSING GAME WITH THIS MULTI ACTION GLOW GIVER THAT COMBINES A GENTLE DOSE OF SKIN CARE HOLY GRAIL - GLYCOLIC ACID, ALONG WITH A MIX OF POTENT ANTIOXIDANTS, HYDRATION AND RESTORING AGENTS - CENTELLA ASIATICA, TURMERIC AND LICORICE.
+              <p className="text-xs sm:text-[13px] leading-[1.8] text-[#5c6080] tracking-wider uppercase font-medium whitespace-pre-wrap">
+                {product?.description || "STEP UP YOUR CLEANSING GAME WITH THIS MULTI ACTION GLOW GIVER THAT COMBINES A GENTLE DOSE OF SKIN CARE HOLY GRAIL - GLYCOLIC ACID, ALONG WITH A MIX OF POTENT ANTIOXIDANTS, HYDRATION AND RESTORING AGENTS - CENTELLA ASIATICA, TURMERIC AND LICORICE."}
               </p>
             </div>
 
             {/* Shade Swatch Selector */}
-            <div className="animate-fade-up mb-8">
-              <p className="text-[11px] tracking-[0.2em] font-bold text-[#2d3150] mb-3 uppercase">SELECT SHADE</p>
-              <div className="flex items-center gap-3.5">
-                {SHADES.map((shade, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleShadeChange(shade)}
-                    title={shade.name}
-                    className={`w-9 h-9 rounded-full border-2 transition-all duration-300 hover:scale-110 relative flex items-center justify-center
-                      ${selectedShade.name === shade.name 
-                        ? "border-[#2d3150] scale-105 shadow-[0_0_12px_rgba(0,0,0,0.08)]" 
-                        : "border-transparent"
-                      }
-                    `}
-                  >
-                    <span 
-                      className="w-7 h-7 rounded-full block border border-black/5" 
-                      style={{ backgroundColor: shade.color }} 
-                    />
-                    {selectedShade.name === shade.name && (
-                      <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-[#2d3150] text-white rounded-full flex items-center justify-center text-[7px]">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+
 
             {/* QTY & ADD TO CART CTA */}
             <div className="animate-fade-up flex flex-col sm:flex-row items-stretch gap-4 mb-10">
-              
+              <button
+                onClick={handleAddToWishlist}
+                className="w-[52px] h-[52px] shrink-0 bg-white border border-[#2d3150]/15 hover:border-[#C18386] text-[#2d3150] hover:text-[#C18386] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.01)] transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
+                aria-label="Add to wishlist"
+              >
+                <Heart size={20} strokeWidth={2} />
+              </button>
               {/* Quantity Counter */}
               <div className="flex items-center justify-between border border-[#2d3150]/15 rounded-xl px-5 py-4 sm:w-36 bg-white shadow-[0_4px_12px_rgba(0,0,0,0.01)]">
-                <button 
+                <button
                   onClick={() => adjustQuantity(-1)}
                   className="text-[#2d3150] hover:text-[#C18386] transition-colors p-1.5"
                   aria-label="Decrease quantity"
                 >
                   <Minus size={14} strokeWidth={2.5} />
                 </button>
-                
+
                 <span className="text-sm font-semibold tracking-wide w-6 text-center select-none text-[#2d3150]">
                   {quantity}
                 </span>
-                
-                <button 
+
+                <button
                   onClick={() => adjustQuantity(1)}
                   className="text-[#2d3150] hover:text-[#C18386] transition-colors p-1.5"
                   aria-label="Increase quantity"
@@ -400,7 +544,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
               </div>
 
               {/* Main Add Button */}
-              <button 
+              <button
                 onClick={handleAddToCart}
                 className="flex-1 bg-[#C18386] hover:bg-[#b07376] text-white rounded-xl py-4.5 px-6 font-semibold tracking-[0.15em] text-xs flex items-center justify-between shadow-[0_12px_24px_rgba(193,131,134,0.22)] transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 uppercase"
               >
@@ -408,11 +552,14 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                 <ShoppingBag size={15} className="stroke-[2.5]" />
               </button>
 
+              {/* Wishlist Button */}
+
+
             </div>
 
             {/* Bottom Trust Indicators Grid */}
             <div className="animate-fade-up grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-[#2d3150]/10 pt-8 mt-4">
-              
+
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#f1f0ee] text-[#2d3150] flex items-center justify-center shrink-0">
                   <RotateCcw size={15} />
@@ -463,90 +610,95 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* ========================================================================= */}
       {/* SECTION 2: PREMIUM MID CONTENT VISUAL SHOWCASE */}
       {/* ========================================================================= */}
-      <section ref={midSectionRef} className="bg-white relative w-full overflow-hidden flex flex-col">
-        
-        {/* Top Left Image - Placed above the heading in document flow */}
-        <div className="w-full flex justify-start pt-16 lg:pt-20 relative z-10">
-          <div className="hidden lg:block relative w-[240px] lg:w-[320px] h-[300px] lg:h-[400px]">
-            <Image
-              src="/detials-p3.png"
-              alt="Product Detail"
-              fill
-              className="object-contain object-left object-top"
-            />
-          </div>
-        </div>
+
+
+      <section ref={midSectionRef} className="bg-white relative w-full overflow-hidden flex flex-col pt-12 lg:pt-20 pb-12 lg:pb-20">
 
         {/* Main Container */}
         <div className="max-w-[1400px] mx-auto px-6 sm:px-12 lg:px-20 relative z-10 w-full">
-          
-          {/* Top spacer */}
-          <div className="pt-8 lg:pt-12"></div>
 
-          {/* Centered Typography */}
-          <div className="max-w-[700px] mx-auto text-center mb-10 lg:mb-16 relative z-10">
-            <h2 className="mid-text-main text-[#2d3150] text-3xl sm:text-4xl lg:text-[42px] leading-[1.2] font-normal font-dm-serif tracking-normal">
-              A boost of anti-oxidant rich<br className="hidden md:block"/>
-              nourishing <span className="font-yellowtail text-[50px] pr-1 font-normal opacity-90 text-[#393F59]">renewal</span> for dull, dry<br className="hidden md:block"/>
-              and tired skin.
-            </h2>
-          </div>
+          <div className="flex flex-col lg:flex-row items-start gap-12 lg:gap-16 w-full">
 
-          {/* Bottom Row: Lists (left) + Image (right) */}
-          <div className="flex flex-col lg:flex-row items-start justify-between relative z-10 w-full pb-12 lg:pb-0 lg:pl-10">
-            
-            {/* Lists Container */}
-            <div className="flex flex-col sm:flex-row gap-12 lg:gap-24 text-left pb-16 lg:pb-24 pt-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-              
-              {/* Column 1 */}
-              <div className="mid-column-fade">
-                <p className="text-[17px] font-normal text-[#767676] mb-5 uppercase">RECOMMENDED FOR</p>
-                <ul className="space-y-3">
-                  {["Dull Skin", "Hyper Pigmentation", "Uneven Skin Tone", "Excess Oil", "Enlarged Pores"].map((item, i) => (
-                    <li key={i} className="flex items-center gap-4 text-[18px] font-normal text-[#2d3150]">
-                      <span className="text-[#2d3150] text-[20px] leading-none">•</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Column 2 */}
-              <div className="mid-column-fade">
-                <p className="text-[17px] font-normal text-[#767676] mb-5 uppercase">GOOD TO KNOW</p>
-                <ul className="space-y-3">
-                  {[
-                    "pH: 4.8", 
-                    "Clean, Verified Ingredients", 
-                    "Vegan, Cruelty-Free", 
-                    "No Artificial Colours Added", 
-                    "For All Skin-Types"
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-4 text-[18px] font-normal text-[#2d3150]">
-                      <span className="text-[#2d3150]">✓</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
+            {/* Left Side: Left Image */}
+            <div className="mid-image-left hidden lg:block relative w-[240px] lg:w-[320px] h-[300px] lg:h-[400px] shrink-0 mt-4">
+              <Image
+                src="/detials-p3.png"
+                alt="Product Detail"
+                fill
+                className="object-contain object-left object-top"
+              />
             </div>
 
-            {/* Bottom Right Image — aligned with lists and perfectly flush right/bottom */}
-            <div className="hidden lg:block relative -mr-6 sm:-mr-12 lg:-mr-20 mt-16 lg:mt-0">
-              <Image
-                src="/details-p2.png"
-                alt="Premium Gold Lipstick on Platform"
-                width={260}
-                height={360}
-                className="object-contain object-top"
-              />
+            {/* Right Side: Heading, Lists, and Right Image */}
+            <div className="flex-1 w-full flex flex-col">
+
+              {/* Heading */}
+              <div className="max-w-[800px] mb-8 lg:mb-12 relative z-10 text-left lg:text-center lg:mx-auto">
+                <h2 className="mid-text-main text-[#2d3150] text-3xl sm:text-4xl lg:text-[42px] leading-[1.2] font-normal font-dm-serif tracking-normal">
+                  A boost of anti-oxidant rich<br className="hidden md:block" />
+                  nourishing <span className="font-yellowtail text-[50px] pr-1 font-normal opacity-90 text-[#393F59]">renewal</span> for dull, dry<br className="hidden md:block" />
+                  and tired skin.
+                </h2>
+              </div>
+
+              {/* Lists and Right Image Side-by-Side */}
+              <div className="flex flex-col md:flex-row items-start justify-between gap-12 w-full mt-4">
+
+                {/* Lists */}
+                <div className="flex flex-col sm:flex-row gap-12 lg:gap-20 text-left" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+                  {/* Column 1 */}
+                  <div className="mid-column-fade">
+                    <p className="text-[15px] font-bold text-[#767676] mb-4 uppercase tracking-wider">RECOMMENDED FOR</p>
+                    <ul className="space-y-3">
+                      {["Dull Skin", "Hyper Pigmentation", "Uneven Skin Tone", "Excess Oil", "Enlarged Pores"].map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-[17px] font-normal text-[#2d3150]">
+                          <span className="text-[#2d3150] text-[18px] leading-none">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Column 2 */}
+                  <div className="mid-column-fade">
+                    <p className="text-[15px] font-bold text-[#767676] mb-4 uppercase tracking-wider">GOOD TO KNOW</p>
+                    <ul className="space-y-3">
+                      {[
+                        "pH: 4.8",
+                        "Clean, Verified Ingredients",
+                        "Vegan, Cruelty-Free",
+                        "No Artificial Colours Added",
+                        "For All Skin-Types"
+                      ].map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-[17px] font-normal text-[#2d3150]">
+                          <span className="text-[#2d3150]">✓</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                </div>
+
+                {/* Right Image */}
+                <div className="mid-image-right hidden lg:block relative shrink-0">
+                  <Image
+                    src="/details-p2.png"
+                    alt="Premium Gold Lipstick on Platform"
+                    width={220}
+                    height={300}
+                    className="object-contain object-top"
+                  />
+                </div>
+
+              </div>
+
             </div>
 
           </div>
 
         </div>
-
       </section>
 
       {/* ========================================================================= */}
@@ -554,7 +706,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* ========================================================================= */}
       <section ref={tabsSectionRef} className="py-12 lg:py-16 bg-[#F2F2F2] border-t border-b border-[#2d3150]/5">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           {/* Header Title */}
           <div className="tabs-header-animate text-center flex flex-col items-center mb-8">
             <span className="font-yellowtail text-[#2d3150] text-4xl mb-2 select-none">all about the</span>
@@ -577,8 +729,8 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                   onClick={() => setActiveTab(tab.id)}
                   style={{ fontFamily: "'Actor', sans-serif" }}
                   className={`flex-1 min-w-[80px] text-center text-[18px] lg:text-[22px] font-normal tracking-normal py-[10px] px-4 rounded-full transition-all duration-300
-                    ${activeTab === tab.id 
-                      ? "bg-[#393F59] text-white" 
+                    ${activeTab === tab.id
+                      ? "bg-[#393F59] text-white"
                       : "text-[#2d3150] hover:bg-black/5"
                     }
                   `}
@@ -592,7 +744,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
           {/* Tab Panel Content Box */}
           <div className="tabs-content-animate w-full">
             <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
-              
+
               {/* Left Column: Full height image */}
               <div className="relative w-full min-h-[400px] lg:min-h-full">
                 <Image
@@ -605,7 +757,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
 
               {/* Right Column: Dynamic tab content display */}
               <div className="flex flex-col justify-center p-12 sm:p-16 lg:p-24">
-                
+
                 {/* TAB 1: ABOUT */}
                 {activeTab === "about" && (
                   <div className="space-y-12 animate-fade-in">
@@ -655,7 +807,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                     </div>
 
                     <div className="space-y-4">
-                      
+
                       <div className="flex items-start gap-4 p-4.5 rounded-2xl bg-[#f1f0ee]/40 border border-[#2d3150]/5">
                         <div className="w-10 h-10 rounded-full bg-[#F0D4DD] text-[#C18386] flex items-center justify-center shrink-0">
                           <Sparkles size={16} />
@@ -710,7 +862,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                 {activeTab === "faq" && (
                   <div className="space-y-4 animate-fade-in max-h-[440px] overflow-y-auto pr-2 no-scrollbar">
                     <h3 className="text-2xl font-bold font-dm-serif text-[#2d3150] mb-4 uppercase tracking-wide">FREQUENTLY ASKED QUESTIONS</h3>
-                    
+
                     {[
                       { q: "Is the Veloura Matte Lipstick drying on lips?", a: "Not at all! Unlike traditional dry matte sticks, Veloura is enriched with Centella Asiatica and restorative natural humectants. It locks in hydration for up to 24 hours while delivering a clean velvet matte finish." },
                       { q: "How long does the color wear remain perfect?", a: "It provides a highly persistent lock-in wear that lasts up to 8 hours through eating and drinking. We recommend avoiding heavy oily foods to keep the pigment intact." },
@@ -724,7 +876,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                           <span>{item.q}</span>
                           <span className="text-[#C18386]">{expandedFaq === index ? "−" : "+"}</span>
                         </button>
-                        
+
                         {expandedFaq === index && (
                           <div className="p-4 pt-0 text-xs text-[#5c6080] leading-[1.7] border-t border-[#2d3150]/5 bg-white">
                             {item.a}
@@ -748,10 +900,10 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* ========================================================================= */}
       <section ref={featuredSectionRef} className="py-16 bg-white overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6 sm:px-12 lg:px-20">
-          
+
           {/* Header & Controls */}
           <div className="relative flex items-center justify-end mb-10 w-full">
-            
+
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
               <h2 className="font-yellowtail text-[#2d3150] text-[44px] leading-none select-none">
                 featured
@@ -760,14 +912,14 @@ export default function ProductDetailPage({ params: paramsPromise }) {
 
             {/* Slider control buttons */}
             <div className="flex items-center gap-3 relative z-10">
-              <button 
+              <button
                 onClick={() => scrollCarousel("left")}
                 className="w-[42px] h-[42px] rounded-full bg-[#E5CDC9] hover:bg-[#dcbcb7] text-[#2d3150] flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 aria-label="Previous slide"
               >
                 <ChevronLeft size={20} strokeWidth={2.5} />
               </button>
-              <button 
+              <button
                 onClick={() => scrollCarousel("right")}
                 className="w-[42px] h-[42px] rounded-full bg-[#E5CDC9] hover:bg-[#dcbcb7] text-[#2d3150] flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 aria-label="Next slide"
@@ -779,7 +931,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
           </div>
 
           {/* Product Rail Horizontal Scroll View */}
-          <div 
+          <div
             ref={carouselRef}
             className="flex gap-6 sm:gap-8 py-6 overflow-x-auto scrollbar-none no-scrollbar snap-x snap-mandatory cursor-grab select-none will-change-transform"
           >

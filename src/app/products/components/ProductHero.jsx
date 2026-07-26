@@ -7,7 +7,7 @@ const ProductHero = () => {
     <>
       {/* HERO SECTION */}
       {/* <section className="sticky top-0 h-screen w-full z-0 overflow-hidden"> */}
-      <section className="sticky top-0  md:h-screen w-full overflow-hidden">
+      <section className="sticky top-0 h-[400px] md:h-[450px] w-full overflow-hidden">
 
         {/* Hero Image */}
         <div className="relative w-full h-full">

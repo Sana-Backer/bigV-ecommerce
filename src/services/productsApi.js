@@ -13,6 +13,10 @@ export const getProductDetailApi = async (id) => {
     return await commonAPI("GET", `${api}/products/${id}/`, "");
 };
 
+export const getProductsByCategoryApi = async (slug) => {
+    return await commonAPI("GET", `${api}/products/by-category/${slug}/`, "");
+};
+
 export const updateProductApi = async (id, reqBody) => {
     return await commonAPI("PUT", `${api}/products/${id}/`, reqBody);
 };
@@ -31,4 +35,16 @@ export const addProductVariantApi = async (productId, reqBody) => {
 
 export const updateProductVariantApi = async (variantId, reqBody) => {
     return await commonAPI("PUT", `${api}/variants/${variantId}/`, reqBody);
+};
+
+export const getProductVariantsApi = async (productId) => {
+    return await commonAPI("GET", `${api}/products/${productId}/variants/`, "");
+};
+
+export const deleteProductVariantApi = async (variantId) => {
+    return await commonAPI("DELETE", `${api}/variants/${variantId}/`, "");
+};
+
+export const deleteProductImageApi = async (imageId) => {
+    return await commonAPI("DELETE", `${api}/images/${imageId}/`, "");
 };

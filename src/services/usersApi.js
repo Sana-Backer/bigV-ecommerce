@@ -14,7 +14,7 @@ export const getUsersApi = async (role = "", search = "", isActive = null) => {
   if (role) params.push(`role=${encodeURIComponent(role)}`);
   if (search) params.push(`search=${encodeURIComponent(search)}`);
   if (isActive !== null) params.push(`is_active=${isActive}`);
-  
+
   url += params.join("&");
   return await commonAPI("GET", url, {});
 };
@@ -46,4 +46,12 @@ export const deactivateUserApi = async (id) => {
  */
 export const changeUserRoleApi = async (id, role) => {
   return await commonAPI("POST", `${api}/admin/users/${id}/role/`, { role });
+};
+
+export const getStaffListApi = async () => {
+  return await commonAPI("GET", `${api}/admin/staff/`, "");
+};
+
+export const createStaffApi = async (reqBody) => {
+  return await commonAPI("POST", `${api}/admin/staff/`, reqBody);
 };

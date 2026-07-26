@@ -35,7 +35,7 @@ export default function Sidebar({ className = "", onClose }) {
     { name: "Coupons", href: "/admin/coupons", icon: Ticket },
     { name: "Banners", href: "/admin/banners", icon: ImageIcon },
     { name: "Settings", href: "/admin/settings", icon: Settings },
-    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Staff", href: "/admin/staff", icon: Users },
   ];
 
   // Helper to check if a menu item is active

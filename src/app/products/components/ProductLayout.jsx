@@ -15,10 +15,10 @@ export default function ProductLayout({
   theme = "dark"
 }) {
   return (
-    <div className="relative z-10 w-full min-h-screen py-10 bg-[#f1f0ee] overflow-x-hidden">
+    <div className="relative z-10 w-full min-h-screen py-6 bg-[#f1f0ee] overflow-x-hidden">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10">
         {/* Dynamic Mobile/Desktop Layout Grid */}
-        <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="flex flex-col md:flex-row gap-4 items-start">
           
           {/* Left Sidebar Filter Section */}
           {sidebar && (

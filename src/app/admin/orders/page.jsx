@@ -21,11 +21,11 @@ import {
   CreditCard,
   User,
   MapPin,
-  ChevronLeft,
   ChevronRight,
   ChevronDown
 } from "lucide-react";
 import { getProductsApi } from "@/services/productsApi";
+import { getAdminOrdersApi, updateOrderStatusApi, updateOrderPaymentStatusApi } from "@/services/ordersApi";
 
 export default function OrderManagement() {
   const [activeTab, setActiveTab] = useState("All Orders");
@@ -40,189 +40,51 @@ export default function OrderManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Mock Orders State
-  const [orders, setOrders] = useState([
-    {
-      id: "#LM-98240",
-      customer: {
-        name: "Sophia Moretti",
-        email: "sophia.m@luxury.it",
-        avatar: "SM",
-        phone: "+39 342 987 6543",
-        address: "Via della Spiga 12, Milan, 20121, Italy"
-      },
-      products: [],
-      rawProductCount: 3,
-      payment: "PAID",
-      status: "Processing",
-      date: "Oct 24, 2023",
-      time: "14:20 PM",
-      total: 1250.00,
-      paymentMethod: "Credit Card (Visa)"
-    },
-    {
-      id: "#LM-98239",
-      customer: {
-        name: "Julian West",
-        email: "j.west@design.co",
-        avatar: "JW",
-        phone: "+1 415 555 2671",
-        address: "450 Sutter St, San Francisco, CA 94108, USA"
-      },
-      products: [],
-      rawProductCount: 1,
-      payment: "PAID",
-      status: "Delivered",
-      date: "Oct 23, 2023",
-      time: "09:15 AM",
-      total: 399.00,
-      paymentMethod: "Apple Pay"
-    },
-    {
-      id: "#LM-98238",
-      customer: {
-        name: "Amara Khan",
-        email: "amara@global.com",
-        avatar: "AK",
-        phone: "+44 7700 900077",
-        address: "82 Baker St, London, W1U 6SG, UK"
-      },
-      products: [],
-      rawProductCount: 2,
-      payment: "FAILED",
-      status: "Canceled",
-      date: "Oct 23, 2023",
-      time: "18:45 PM",
-      total: 800.00,
-      paymentMethod: "PayPal"
-    },
-    {
-      id: "#LM-98237",
-      customer: {
-        name: "Liam Davies",
-        email: "liam@welshdev.net",
-        avatar: "LD",
-        phone: "+44 1222 456789",
-        address: "15 Cardiff Rd, Llandaff, Cardiff, CF5 2DN, UK"
-      },
-      products: [],
-      rawProductCount: 1,
-      payment: "PAID",
-      status: "Shipped",
-      date: "Oct 22, 2023",
-      time: "11:30 AM",
-      total: 150.00,
-      paymentMethod: "Credit Card (Mastercard)"
-    },
-    {
-      id: "#LM-98236",
-      customer: {
-        name: "Yuki Tanaka",
-        email: "yuki.t@tokyo.jp",
-        avatar: "YT",
-        phone: "+81 90 1234 5678",
-        address: "3-chōme-1-1 Shibuya, Tokyo, 150-8319, Japan"
-      },
-      products: [],
-      rawProductCount: 4,
-      payment: "PAID",
-      status: "Pending",
-      date: "Oct 22, 2023",
-      time: "08:10 AM",
-      total: 1950.00,
-      paymentMethod: "Google Pay"
-    },
-    {
-      id: "#LM-98235",
-      customer: {
-        name: "Emma Watson",
-        email: "emma@hogwarts.edu",
-        avatar: "EW",
-        phone: "+44 7911 123456",
-        address: "Hogwarts Castle, Highlands, Scotland"
-      },
-      products: [],
-      rawProductCount: 1,
-      payment: "PAID",
-      status: "Delivered",
-      date: "Oct 21, 2023",
-      time: "16:00 PM",
-      total: 250.00,
-      paymentMethod: "Credit Card (Amex)"
-    },
-    {
-      id: "#LM-98234",
-      customer: {
-        name: "Carlos Ruiz",
-        email: "carlos@madrid.es",
-        avatar: "CR",
-        phone: "+34 612 345 678",
-        address: "Calle de Alcalá 45, Madrid, 28014, Spain"
-      },
-      products: [],
-      rawProductCount: 2,
-      payment: "FAILED",
-      status: "Canceled",
-      date: "Oct 20, 2023",
-      time: "10:30 AM",
-      total: 600.00,
-      paymentMethod: "PayPal"
-    },
-    {
-      id: "#LM-98233",
-      customer: {
-        name: "Chloe Mercer",
-        email: "chloe@fashion.co.uk",
-        avatar: "CM",
-        phone: "+44 7890 123456",
-        address: "12 Regent St, Soho, London, W1B 5AH, UK"
-      },
-      products: [],
-      rawProductCount: 1,
-      payment: "PAID",
-      status: "Processing",
-      date: "Oct 20, 2023",
-      time: "15:40 PM",
-      total: 450.00,
-      paymentMethod: "Credit Card (Visa)"
-    },
-    {
-      id: "#LM-98232",
-      customer: {
-        name: "Lucas Miller",
-        email: "lucas@berlin.de",
-        avatar: "LM",
-        phone: "+49 170 1234567",
-        address: "Friedrichstraße 80, Berlin, 10117, Germany"
-      },
-      products: [],
-      rawProductCount: 3,
-      payment: "PAID",
-      status: "Shipped",
-      date: "Oct 19, 2023",
-      time: "13:20 PM",
-      total: 1100.00,
-      paymentMethod: "Apple Pay"
-    },
-    {
-      id: "#LM-98231",
-      customer: {
-        name: "Olivia Vance",
-        email: "olivia@vance.io",
-        avatar: "OV",
-        phone: "+1 650 555 0199",
-        address: "1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA"
-      },
-      products: [],
-      rawProductCount: 2,
-      payment: "PAID",
-      status: "Pending",
-      date: "Oct 18, 2023",
-      time: "09:50 AM",
-      total: 750.00,
-      paymentMethod: "Credit Card (Visa)"
-    }
-  ]);
+  const [orders, setOrders] = useState([]);
+
+  // Fetch real orders from API
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setIsLoading(true);
+      try {
+        const response = await getAdminOrdersApi();
+        if (response && response.status === 200) {
+          const fetchedOrders = (response.data?.data || response.data?.results || []).map(o => {
+            const d = new Date(o.created_at);
+            const name = o.customer_name || "Guest User";
+            const avatar = name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase() || "GU";
+            const statusFormatted = o.status ? o.status.charAt(0).toUpperCase() + o.status.slice(1).toLowerCase() : "Pending";
+            
+            return {
+              id: o.order_number,
+              realId: o.id,
+              customer: {
+                name: name,
+                email: o.customer_email || "N/A",
+                avatar: avatar,
+                phone: o.customer_phone || "N/A",
+                address: "View details for address"
+              },
+              products: [],
+              rawProductCount: o.item_count || 0,
+              payment: o.payment_status || "PENDING",
+              status: statusFormatted,
+              date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              time: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
+              total: parseFloat(o.total_amount) || 0,
+              paymentMethod: "N/A"
+            };
+          });
+          setOrders(fetchedOrders);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin orders:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
 
   // Fetch real products to populate the order thumbnails
   useEffect(() => {
@@ -304,26 +166,52 @@ export default function OrderManagement() {
   };
 
   // Change Status Handler
-  const handleStatusChange = (orderId, newStatus) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+  const handleStatusChange = async (orderId, newStatus) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.realId) return;
+    
+    try {
+      const response = await updateOrderStatusApi(order.realId, { status: newStatus.toLowerCase() });
+      if (response && response.status === 200) {
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === orderId ? { ...o, status: newStatus } : o
+          )
+        );
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+        }
+      } else {
+        alert(response?.data?.message || "Invalid status transition.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to update order status.");
     }
   };
 
   // Change Payment Status Handler
-  const handlePaymentChange = (orderId, newPaymentStatus) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
-        order.id === orderId ? { ...order, payment: newPaymentStatus } : order
-      )
-    );
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder(prev => ({ ...prev, payment: newPaymentStatus }));
+  const handlePaymentChange = async (orderId, newPaymentStatus) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.realId) return;
+
+    try {
+      const response = await updateOrderPaymentStatusApi(order.realId, { payment_status: newPaymentStatus.toLowerCase() });
+      if (response && response.status === 200) {
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === orderId ? { ...o, payment: newPaymentStatus } : o
+          )
+        );
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => ({ ...prev, payment: newPaymentStatus }));
+        }
+      } else {
+        alert(response?.data?.message || "Invalid payment status transition.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to update payment status.");
     }
   };
 
@@ -746,10 +634,13 @@ export default function OrderManagement() {
                     className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold outline-none text-slate-700 focus:border-[#2C3B5E] focus:ring-1 focus:ring-[#2C3B5E] cursor-pointer"
                   >
                     <option value="Pending">Pending</option>
+                    <option value="Confirmed">Confirmed</option>
                     <option value="Processing">Processing</option>
+                    <option value="Packed">Packed</option>
                     <option value="Shipped">Shipped</option>
+                    <option value="Out_for_delivery">Out for Delivery</option>
                     <option value="Delivered">Delivered</option>
-                    <option value="Canceled">Canceled</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
 
@@ -760,8 +651,10 @@ export default function OrderManagement() {
                     onChange={(e) => handlePaymentChange(selectedOrder.id, e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold outline-none text-slate-700 focus:border-[#2C3B5E] focus:ring-1 focus:ring-[#2C3B5E] cursor-pointer"
                   >
-                    <option value="PAID">PAID</option>
-                    <option value="FAILED">FAILED</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Paid">Paid</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Refunded">Refunded</option>
                   </select>
                 </div>
 
