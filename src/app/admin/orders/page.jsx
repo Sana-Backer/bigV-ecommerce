@@ -24,8 +24,14 @@ import {
   ChevronRight,
   ChevronDown
 } from "lucide-react";
-import { getProductsApi } from "@/services/productsApi";
-import { getAdminOrdersApi, updateOrderStatusApi, updateOrderPaymentStatusApi } from "@/services/ordersApi";
+import { 
+  getAdminOrdersApi, 
+  updateOrderStatusApi, 
+  updateOrderPaymentStatusApi,
+  getAdminOrderDetailApi,
+  updateOrderFulfillmentStatusApi,
+  cancelAdminOrderApi
+} from "@/services/ordersApi";
 
 export default function OrderManagement() {
   const [activeTab, setActiveTab] = useState("All Orders");
@@ -33,8 +39,8 @@ export default function OrderManagement() {
   const [selectedDateRange, setSelectedDateRange] = useState("Last 30 Days");
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [realProducts, setRealProducts] = useState([]);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -48,6 +54,7 @@ export default function OrderManagement() {
       setIsLoading(true);
       try {
         const response = await getAdminOrdersApi();
+         console.log(response);
         if (response && response.status === 200) {
           const fetchedOrders = (response.data?.data || response.data?.results || []).map(o => {
             const d = new Date(o.created_at);
@@ -69,6 +76,7 @@ export default function OrderManagement() {
               rawProductCount: o.item_count || 0,
               payment: o.payment_status || "PENDING",
               status: statusFormatted,
+              fulfillment: o.fulfillment_status ? o.fulfillment_status.charAt(0).toUpperCase() + o.fulfillment_status.slice(1).toLowerCase() : "Unfulfilled",
               date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
               time: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }),
               total: parseFloat(o.total_amount) || 0,
@@ -76,6 +84,8 @@ export default function OrderManagement() {
             };
           });
           setOrders(fetchedOrders);
+         
+          
         }
       } catch (err) {
         console.error("Failed to fetch admin orders:", err);
@@ -85,54 +95,6 @@ export default function OrderManagement() {
     };
     fetchOrders();
   }, []);
-
-  // Fetch real products to populate the order thumbnails
-  useEffect(() => {
-    const fetchRealProducts = async () => {
-      try {
-        const response = await getProductsApi();
-        if (response && response.status === 200 && response.data?.status === "success") {
-          setRealProducts(response.data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch real products for order page:", err);
-      }
-    };
-    fetchRealProducts();
-  }, []);
-
-  // Sync real products with order thumbnails
-  useEffect(() => {
-    if (realProducts.length === 0) return;
-    
-    setOrders(prevOrders => 
-      prevOrders.map((order, idx) => {
-        // Map 1-3 products to each order based on its rawProductCount and available realProducts
-        const mappedProducts = [];
-        const startIdx = (idx * 2) % realProducts.length;
-        const count = Math.min(order.rawProductCount, realProducts.length);
-        
-        for (let i = 0; i < count; i++) {
-          const prod = realProducts[(startIdx + i) % realProducts.length];
-          mappedProducts.push({
-            id: prod.id,
-            name: prod.name,
-            image: prod.primary_image || "/product1.png",
-            price: parseFloat(prod.base_price) || 399.00
-          });
-        }
-        
-        // Re-calculate total based on real products
-        const total = mappedProducts.reduce((sum, item) => sum + item.price, 0);
-
-        return {
-          ...order,
-          products: mappedProducts,
-          total: total > 0 ? total : order.total
-        };
-      })
-    );
-  }, [realProducts]);
 
   // Filters
   const dateRanges = ["Today", "Last 7 Days", "Last 30 Days", "All Time"];
@@ -212,6 +174,147 @@ export default function OrderManagement() {
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Failed to update payment status.");
+    }
+  };
+
+  // Change Fulfillment Status Handler
+  const handleFulfillmentChange = async (orderId, newFulfillmentStatus) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.realId) return;
+
+    try {
+      const response = await updateOrderFulfillmentStatusApi(order.realId, { fulfillment_status: newFulfillmentStatus.toLowerCase() });
+      if (response && response.status === 200) {
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === orderId ? { ...o, fulfillment: newFulfillmentStatus } : o
+          )
+        );
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => ({ ...prev, fulfillment: newFulfillmentStatus }));
+        }
+      } else {
+        alert(response?.data?.message || "Invalid fulfillment status transition.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to update fulfillment status.");
+    }
+  };
+
+  // Cancel Order Handler
+  const handleCancelOrder = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.realId) return;
+    
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+
+    try {
+      const response = await cancelAdminOrderApi(order.realId, { reason: "Cancelled by admin" });
+      if (response && response.status === 200) {
+        setOrders(prevOrders => 
+          prevOrders.map(o => 
+            o.id === orderId ? { ...o, status: "Cancelled" } : o
+          )
+        );
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => ({ ...prev, status: "Cancelled" }));
+        }
+      } else {
+        alert(response?.data?.message || "Failed to cancel order.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to cancel order.");
+    }
+  };
+
+  // View Order Detail
+  const handleViewOrder = async (order) => {
+    setSelectedOrder(order); // Show modal immediately with list data
+    if (order.realId) {
+      setIsDetailLoading(true);
+      try {
+        const response = await getAdminOrderDetailApi(order.realId);
+        if (response && response.status === 200) {
+          const detailedOrder = response.data?.data || response.data;
+          
+          // Merge detailed data into selectedOrder
+          setSelectedOrder(prev => {
+            if (!prev || prev.id !== order.id) return prev;
+            
+            // Format address function to support both old and new field names
+            const formatAddress = (addr) => {
+              if (addr && typeof addr === 'object') {
+                const parts = [
+                  addr.line1 || addr.street_address_1,
+                  addr.line2 || addr.street_address_2,
+                  addr.city,
+                  addr.state,
+                  addr.postal_code || addr.pin_code,
+                  addr.country
+                ].filter(p => p && p.trim() !== '');
+                if (parts.length > 0) {
+                  return parts.join(", ");
+                }
+              }
+              return "Address not provided";
+            };
+            
+            const shippingAddressStr = formatAddress(detailedOrder.shipping_address_snapshot);
+            const billingAddressStr = formatAddress(detailedOrder.billing_address_snapshot);
+
+            // Format real products from detailedOrder.items
+            let realOrderProducts = prev.products;
+            if (detailedOrder.items && detailedOrder.items.length > 0) {
+              realOrderProducts = detailedOrder.items.map(item => {
+                let itemName = item.product_name || "Unknown Product";
+                if (item.variant_name) itemName += ` - ${item.variant_name}`;
+                return {
+                  id: item.id,
+                  name: itemName,
+                  image: "/product1.png", // Assuming image is not returned in order items, fallback to placeholder
+                  price: parseFloat(item.unit_price) || 0,
+                  quantity: item.quantity || 1
+                };
+              });
+            }
+
+            // Extract payment method from notes if it exists
+            let paymentMethod = "N/A";
+            if (detailedOrder.notes && detailedOrder.notes.includes("Payment Method:")) {
+              paymentMethod = detailedOrder.notes.split("Payment Method:")[1].trim();
+            } else if (detailedOrder.notes) {
+              paymentMethod = detailedOrder.notes;
+            }
+
+            return {
+              ...prev,
+              fulfillment: detailedOrder.fulfillment_status ? detailedOrder.fulfillment_status.charAt(0).toUpperCase() + detailedOrder.fulfillment_status.slice(1).toLowerCase() : "Unfulfilled",
+              customer: {
+                ...prev.customer,
+                address: shippingAddressStr,
+                billingAddress: billingAddressStr
+              },
+              products: realOrderProducts,
+              paymentMethod: paymentMethod,
+              notes: detailedOrder.notes || "",
+              couponCode: detailedOrder.coupon_code || "",
+              statusHistory: detailedOrder.status_history || [],
+              isCancellable: detailedOrder.is_cancellable !== undefined ? detailedOrder.is_cancellable : true,
+              subtotal: detailedOrder.subtotal ? parseFloat(detailedOrder.subtotal) : prev.total,
+              shipping_amount: detailedOrder.shipping_amount ? parseFloat(detailedOrder.shipping_amount) : 0,
+              tax_amount: detailedOrder.tax_amount ? parseFloat(detailedOrder.tax_amount) : 0,
+              discount_amount: detailedOrder.discount_amount ? parseFloat(detailedOrder.discount_amount) : 0,
+              total: detailedOrder.total_amount ? parseFloat(detailedOrder.total_amount) : prev.total,
+            };
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch order details", err);
+      } finally {
+        setIsDetailLoading(false);
+      }
     }
   };
 
@@ -475,24 +578,15 @@ export default function OrderManagement() {
                       </div>
                     </td>
 
-                    {/* Product Thumbnails Stack */}
+                    {/* Product Count */}
                     <td className="py-4.5 px-6">
-                      <div className="flex items-center -space-x-2.5 overflow-hidden">
-                        {order.products.slice(0, 2).map((prod, idx) => (
-                          <div key={prod.id || idx} className="w-8.5 h-8.5 rounded-lg border-2 border-white overflow-hidden bg-slate-50 shadow-sm shrink-0">
-                            <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                        {(order.products.length > 2 || (order.products.length === 0 && order.rawProductCount > 2)) && (
-                          <div className="w-8.5 h-8.5 rounded-lg border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-extrabold text-slate-500 shadow-sm shrink-0">
-                            +{order.products.length > 0 ? order.products.length - 2 : order.rawProductCount - 2}
-                          </div>
-                        )}
-                        {order.products.length === 0 && order.rawProductCount <= 2 && (
-                          <div className="w-8.5 h-8.5 rounded-lg border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-extrabold text-slate-400 shadow-sm shrink-0">
-                            <ShoppingBag className="w-4.5 h-4.5" />
-                          </div>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8.5 h-8.5 rounded-lg border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400 shadow-sm shrink-0">
+                          <ShoppingBag className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold text-slate-600">
+                          {order.rawProductCount} {order.rawProductCount === 1 ? 'Item' : 'Items'}
+                        </span>
                       </div>
                     </td>
 
@@ -537,7 +631,7 @@ export default function OrderManagement() {
                     <td className="py-4.5 px-6 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => handleViewOrder(order)}
                           className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                           title="View Order Details"
                         >
@@ -651,10 +745,28 @@ export default function OrderManagement() {
                     onChange={(e) => handlePaymentChange(selectedOrder.id, e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold outline-none text-slate-700 focus:border-[#2C3B5E] focus:ring-1 focus:ring-[#2C3B5E] cursor-pointer"
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Failed">Failed</option>
-                    <option value="Refunded">Refunded</option>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="failed">Failed</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fulfillment Status</span>
+                  <select
+                    value={selectedOrder.fulfillment || "Unfulfilled"}
+                    onChange={(e) => handleFulfillmentChange(selectedOrder.id, e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-bold outline-none text-slate-700 focus:border-[#2C3B5E] focus:ring-1 focus:ring-[#2C3B5E] cursor-pointer"
+                    disabled={isDetailLoading}
+                  >
+                    <option value="Unfulfilled">Unfulfilled</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Packed">Packed</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Out_for_delivery">Out for Delivery</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
 
@@ -665,14 +777,14 @@ export default function OrderManagement() {
               </div>
 
               {/* Customer and Shipping Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-slate-100 pb-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-slate-100 pb-5">
                 {/* Customer Contact */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <User className="w-4.5 h-4.5 text-[#2C3B5E]" />
                     <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Customer Details</h4>
                   </div>
-                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-2 text-xs">
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-2 text-xs h-[104px]">
                     <div>
                       <span className="font-bold block text-slate-700">{selectedOrder.customer.name}</span>
                       <span className="text-slate-400 font-medium block mt-0.5">{selectedOrder.customer.email}</span>
@@ -690,9 +802,22 @@ export default function OrderManagement() {
                     <MapPin className="w-4.5 h-4.5 text-[#2C3B5E]" />
                     <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Shipping Address</h4>
                   </div>
-                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 text-xs flex flex-col justify-center h-[96px]">
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 text-xs flex flex-col justify-center h-[104px]">
                     <span className="font-bold text-slate-600 leading-relaxed block">
                       {selectedOrder.customer.address}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Billing Location */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4.5 h-4.5 text-[#2C3B5E]" />
+                    <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Billing Address</h4>
+                  </div>
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 text-xs flex flex-col justify-center h-[104px]">
+                    <span className="font-bold text-slate-600 leading-relaxed block">
+                      {selectedOrder.customer.billingAddress || selectedOrder.customer.address}
                     </span>
                   </div>
                 </div>
@@ -721,9 +846,9 @@ export default function OrderManagement() {
                               </div>
                               <span className="font-extrabold text-slate-800">{item.name}</span>
                             </td>
-                            <td className="py-3.5 px-4 text-center text-slate-500">1</td>
+                            <td className="py-3.5 px-4 text-center text-slate-500">{item.quantity}</td>
                             <td className="py-3.5 px-4 text-right">₹{item.price.toFixed(2)}</td>
-                            <td className="py-3.5 px-4 text-right text-slate-800">₹{item.price.toFixed(2)}</td>
+                            <td className="py-3.5 px-4 text-right text-slate-800">₹{(item.price * item.quantity).toFixed(2)}</td>
                           </tr>
                         ))
                       ) : (
@@ -744,11 +869,21 @@ export default function OrderManagement() {
                       {/* Financial totals lines */}
                       <tr className="bg-slate-50/20 font-bold">
                         <td colSpan="3" className="py-3.5 px-4 text-right text-slate-400 uppercase tracking-wider text-[10px]">Subtotal</td>
-                        <td className="py-3.5 px-4 text-right text-slate-700">₹{selectedOrder.total.toFixed(2)}</td>
+                        <td className="py-3.5 px-4 text-right text-slate-700">₹{selectedOrder.subtotal ? selectedOrder.subtotal.toFixed(2) : selectedOrder.total.toFixed(2)}</td>
+                      </tr>
+                      {selectedOrder.discount_amount > 0 && (
+                        <tr className="bg-slate-50/20 font-bold">
+                          <td colSpan="3" className="py-3.5 px-4 text-right text-emerald-500 uppercase tracking-wider text-[10px]">Discount {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : ''}</td>
+                          <td className="py-3.5 px-4 text-right text-emerald-600">-₹{selectedOrder.discount_amount.toFixed(2)}</td>
+                        </tr>
+                      )}
+                      <tr className="bg-slate-50/20 font-bold">
+                        <td colSpan="3" className="py-3.5 px-4 text-right text-slate-400 uppercase tracking-wider text-[10px]">Tax</td>
+                        <td className="py-3.5 px-4 text-right text-slate-700">₹{selectedOrder.tax_amount ? selectedOrder.tax_amount.toFixed(2) : '0.00'}</td>
                       </tr>
                       <tr className="bg-slate-50/20 font-bold">
                         <td colSpan="3" className="py-3.5 px-4 text-right text-slate-400 uppercase tracking-wider text-[10px]">Shipping</td>
-                        <td className="py-3.5 px-4 text-right text-emerald-600">FREE</td>
+                        <td className="py-3.5 px-4 text-right text-slate-700">{selectedOrder.shipping_amount > 0 ? `₹${selectedOrder.shipping_amount.toFixed(2)}` : 'FREE'}</td>
                       </tr>
                       <tr className="bg-slate-50/30 border-t border-slate-100 font-extrabold">
                         <td colSpan="3" className="py-4 px-4 text-right text-[#2C3B5E] uppercase tracking-wider text-[10px]">Grand Total</td>
@@ -773,20 +908,60 @@ export default function OrderManagement() {
                   <div className="flex items-center gap-1.5">
                     <span className="text-slate-400 font-medium">Transaction Status:</span>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                      selectedOrder.payment === "PAID"
+                      selectedOrder.payment === "paid"
                         ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                         : "bg-rose-50 text-rose-600 border-rose-100"
                     }`}>
-                      {selectedOrder.payment === "PAID" ? "Settled Successfully" : "Payment Failed"}
+                      {selectedOrder.payment === "paid" ? "Settled Successfully" : "Payment Failed"}
                     </span>
                   </div>
                 </div>
+                {selectedOrder.notes && !selectedOrder.notes.includes("Payment Method:") && (
+                  <div className="mt-2 bg-slate-50/50 border border-slate-100 rounded-2xl p-4 text-xs">
+                    <span className="font-bold text-slate-700 block mb-1">Order Notes</span>
+                    <span className="text-slate-600">{selectedOrder.notes}</span>
+                  </div>
+                )}
               </div>
+
+              {/* Status History */}
+              {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-slate-100">
+                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Status History</h4>
+                  <div className="space-y-4 ml-2">
+                    {selectedOrder.statusHistory.map((history, idx) => (
+                      <div key={idx} className="relative pl-6">
+                        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-[#2C3B5E]"></div>
+                        {idx !== selectedOrder.statusHistory.length - 1 && (
+                          <div className="absolute left-1 top-3.5 w-0.5 h-full bg-slate-200"></div>
+                        )}
+                        <div className="text-xs">
+                          <span className="font-bold text-slate-700 capitalize">
+                            {history.status_type} Status: {history.old_status ? history.old_status + ' ➔ ' : ''}{history.new_status}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            {new Date(history.created_at).toLocaleString()} by {history.changed_by_email}
+                          </span>
+                          {history.reason && (
+                            <span className="text-slate-500 italic block mt-1">{history.reason}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0 flex justify-end gap-3">
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0 flex justify-between gap-3">
+              <button
+                onClick={() => handleCancelOrder(selectedOrder.id)}
+                className="px-5 py-2.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={selectedOrder.status === "Cancelled" || selectedOrder.isCancellable === false}
+              >
+                Cancel Order
+              </button>
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="px-5 py-2.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"

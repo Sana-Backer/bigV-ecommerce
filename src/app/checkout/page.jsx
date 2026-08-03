@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 import { checkoutQuoteApi, createOrderApi } from "@/services/checkoutApi";
 import { getCartApi } from "@/services/cartApi";
+import { razorpayCreateOrderApi, razorpayVerifyPaymentApi } from "@/services/paymentsApi";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Loader2 } from "lucide-react";
@@ -100,23 +102,96 @@ export default function CheckoutPage() {
       const response = await createOrderApi(payload);
       
       if (response && (response.status === 200 || response.status === 201)) {
-        const orderId = response.data?.data?.order_number || response.data?.order_number || response.data?.data?.id || response.data?.id;
+        const orderData = response.data?.data || response.data;
+        const displayOrderId = orderData?.order_number || orderData?.id;
+        const realOrderId = orderData?.id;
         
-        // Dispatch cart update to clear cart in UI
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("cartUpdated"));
+        if (paymentMethod === "RAZORPAY") {
+          // 1. Create Razorpay Order
+          const rzpCreateRes = await razorpayCreateOrderApi({ order_id: realOrderId });
+          if (rzpCreateRes && rzpCreateRes.status === 201) {
+            const rzpData = rzpCreateRes.data.data || rzpCreateRes.data;
+            
+            // 2. Open Razorpay Widget
+            const options = {
+              key: rzpData.key_id,
+              amount: rzpData.amount,
+              currency: rzpData.currency,
+              name: "Lumora Beauty",
+              description: `Order ${displayOrderId}`,
+              order_id: rzpData.razorpay_order_id,
+              handler: async function (response) {
+                // 3. Verify Payment
+                try {
+                  const verifyRes = await razorpayVerifyPaymentApi({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature
+                  });
+
+                  if (verifyRes && verifyRes.status === 200) {
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new Event("cartUpdated"));
+                    }
+                    router.push(`/order-success/${displayOrderId}`);
+                  } else {
+                    setError("Payment verification failed. Please contact support.");
+                    setSubmitting(false);
+                  }
+                } catch (verifyErr) {
+                  console.error(verifyErr);
+                  setError(verifyErr?.response?.data?.message || "Payment verification failed. Please contact support.");
+                  setSubmitting(false);
+                }
+              },
+              prefill: {
+                name: shippingAddress.full_name,
+                email: contactInfo.email,
+                contact: contactInfo.phone
+              },
+              theme: {
+                color: "#2C332E"
+              },
+              modal: {
+                ondismiss: function () {
+                  setError("Payment was cancelled. Your order has been placed but payment is pending. Please retry payment from your orders page.");
+                  setSubmitting(false);
+                }
+              }
+            };
+            
+            if (window.Razorpay) {
+              const rzp = new window.Razorpay(options);
+              rzp.on('payment.failed', function (response){
+                  setError(response.error.description || "Payment failed. Please try again.");
+                  setSubmitting(false);
+              });
+              rzp.open();
+            } else {
+              setError("Payment gateway is not available right now. Please check your internet connection or adblocker.");
+              setSubmitting(false);
+            }
+            
+          } else {
+            setError(rzpCreateRes?.data?.message || "Failed to initialize payment gateway.");
+            setSubmitting(false);
+          }
+        } else {
+          // COD Flow
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("cartUpdated"));
+          }
+          router.push(`/order-success/${displayOrderId}`);
         }
-        
-        router.push(`/order-success/${orderId}`);
       } else {
         setError(response?.data?.message || "Failed to create order. Please check your details.");
+        setSubmitting(false);
       }
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "An unexpected error occurred. Please try again.");
-    } finally {
       setSubmitting(false);
-    }
+    } 
   };
 
   if (loading) {
@@ -133,6 +208,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FCFAF7] font-sans">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Navbar />
       
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">

@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { getMeApi } from "@/services/auth";
 import { Loader2, User, MapPin, Package, LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ProfileTab from "./components/ProfileTab";
 import AddressTab from "./components/AddressTab";
+import OrdersTab from "./components/OrdersTab";
 import Link from "next/link";
 
 export default function AccountPage() {
@@ -13,6 +14,14 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
+  useEffect(() => {
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     fetchUser();
@@ -113,18 +122,7 @@ export default function AccountPage() {
           <div className="md:col-span-9">
             {activeTab === "profile" && <ProfileTab user={user} fetchUser={fetchUser} />}
             {activeTab === "addresses" && <AddressTab />}
-            {activeTab === "orders" && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center py-20">
-                <Package size={48} className="mx-auto text-slate-300 mb-4" />
-                <h3 className="text-xl font-bold text-slate-700 mb-2">Order History Coming Soon</h3>
-                <p className="text-slate-500 max-w-sm mx-auto">
-                  We are working on bringing your complete order history to this dashboard.
-                </p>
-                <Link href="/products" className="inline-block mt-6 text-[#2C332E] font-bold border-2 border-[#2C332E] px-6 py-2 rounded-xl hover:bg-[#2C332E] hover:text-white transition-colors">
-                  Continue Shopping
-                </Link>
-              </div>
-            )}
+            {activeTab === "orders" && <OrdersTab />}
           </div>
 
         </div>

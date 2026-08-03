@@ -164,7 +164,7 @@ const Navbar = ({ theme = "dark" }) => {
                     {user ? (
                       <div className="space-y-0 text-left px-1 py-1">
                         <Link
-                          href="#"
+                          href="/account?tab=orders"
                           onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center justify-between w-full py-3 text-[13px] font-medium text-[#353B50] hover:text-black transition-colors border-b border-slate-200"
                         >
@@ -201,16 +201,14 @@ const Navbar = ({ theme = "dark" }) => {
                           <span>My Cart</span>
                           <ChevronRight size={14} className="text-slate-400" />
                         </button>
-                        <button
-                          onClick={() => {
-                            setIsDropdownOpen(false);
-                            setIsProfileOpen(true);
-                          }}
+                        <Link
+                          href="/account"
+                          onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center justify-between w-full py-3 text-[13px] font-medium text-[#353B50] hover:text-black transition-colors border-b border-slate-200"
                         >
                           <span>My Account</span>
                           <ChevronRight size={14} className="text-slate-400" />
-                        </button>
+                        </Link>
 
                         <div className="pt-6 pb-2">
                           <button
