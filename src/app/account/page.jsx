@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, Suspense } from "react";
 import { getMeApi } from "@/services/auth";
 import { Loader2, User, MapPin, Package, LogOut } from "lucide-react";
