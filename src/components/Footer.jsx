@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowUpRight } from "lucide-react";
@@ -132,10 +133,10 @@ const Footer = () => {
                   EXPLORE
                 </h3>
                 <ul className="flex flex-col gap-4 text-sm text-[#393F59] font-medium">
-                  <li><a href="#" className="hover:text-black transition-colors duration-200">Shop</a></li>
-                  <li><a href="#" className="hover:text-black transition-colors duration-200">About</a></li>
-                  <li><a href="#" className="hover:text-black transition-colors duration-200">Gallery</a></li>
-                  <li><a href="#" className="hover:text-black transition-colors duration-200">Sign Up/Login</a></li>
+                  <li><Link href="/products" className="hover:text-black transition-colors duration-200">Shop</Link></li>
+                  <li><Link href="/about-us" className="hover:text-black transition-colors duration-200">About</Link></li>
+                  <li><Link href="#" className="hover:text-black transition-colors duration-200">Gallery</Link></li>
+                  <li><Link href="/login" className="hover:text-black transition-colors duration-200">Sign Up/Login</Link></li>
                 </ul>
               </div>
 

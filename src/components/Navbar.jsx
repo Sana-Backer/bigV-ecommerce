@@ -1,13 +1,47 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ShoppingBag, User, ChevronRight } from "lucide-react";
+import { Search, ShoppingBag, User, ChevronRight, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { logoutApi } from "@/services/auth";
 import ProfileDrawer from "./ProfileDrawer";
 import CartDrawer from "./CartDrawer";
 import NotificationModal from "./NotificationModal";
 import WishlistDrawer from "./WishlistDrawer";
+import { motion, AnimatePresence } from "framer-motion";
+
+const menuVariants = {
+  initial: { y: "-100%" },
+  animate: {
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: {
+    y: "-100%",
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const linkContainerVariants = {
+  animate: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+  },
+  exit: {
+    transition: { staggerChildren: 0.05, staggerDirection: -1 },
+  }
+};
+
+const linkVariants = {
+  initial: { y: 60, opacity: 0 },
+  animate: {
+    y: 0, opacity: 1,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+  exit: {
+    y: 40, opacity: 0,
+    transition: { duration: 0.3 },
+  }
+};
 
 const Navbar = ({ theme = "dark" }) => {
   const isDark = theme === "dark";
@@ -21,7 +55,7 @@ const Navbar = ({ theme = "dark" }) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [user, setUser] = useState(null);
-
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -121,12 +155,21 @@ const Navbar = ({ theme = "dark" }) => {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
           <div className={`flex items-center justify-between transition-all duration-500 ${isScrolled ? 'h-16' : 'h-20'}`}>
 
-            {/* Logo */}
-            <Link href="/">
-              <h1 className={`${textColorClass} text-3xl font-semibold tracking-[0.3em] cursor-pointer hover:opacity-80 transition-all duration-500`}>
-                LUMORA
-              </h1>
-            </Link>
+            {/* Mobile Menu Toggle & Logo */}
+            <div className="flex items-center gap-3 lg:gap-0">
+              <button
+                className={`md:hidden flex items-center justify-center p-1 transition-transform hover:scale-105 ${textColorClass}`}
+                onClick={() => setIsMobileMenuOpen(true)}
+              >
+                <Menu size={22} strokeWidth={1.5} />
+              </button>
+
+              <Link href="/">
+                <h1 className={`${textColorClass} text-xl sm:text-2xl md:text-3xl font-semibold tracking-[0.2em] md:tracking-[0.3em] cursor-pointer hover:opacity-80 transition-all duration-500`}>
+                  LUMORA
+                </h1>
+              </Link>
+            </div>
 
             {/* Nav Links */}
             <nav className={`hidden md:flex items-center gap-10 ${textColorClass} text-sm font-medium transition-colors duration-500`}>
@@ -255,6 +298,69 @@ const Navbar = ({ theme = "dark" }) => {
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Dropdown */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            variants={menuVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="fixed inset-0 z-[60] bg-[#1a1a1a] text-white md:hidden flex flex-col"
+          >
+            <div className="flex items-center justify-between p-6 h-20">
+              <h1 className="text-xl font-semibold tracking-[0.2em]">
+                LUMORA
+              </h1>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 hover:opacity-70 transition-opacity">
+                <X size={28} strokeWidth={1.5} />
+              </button>
+            </div>
+            
+            <motion.nav 
+              variants={linkContainerVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="flex-1 flex flex-col justify-center px-8 gap-8"
+            >
+              {[
+                { name: "Shop", href: "/products" },
+                { name: "About Us", href: "/about-us" },
+                { name: "Blog", href: "#" },
+                { name: "Contact", href: "#" },
+              ].map((item, i) => (
+                <div key={i} className="overflow-hidden">
+                  <motion.div variants={linkVariants}>
+                    <Link 
+                      href={item.href} 
+                      onClick={() => setIsMobileMenuOpen(false)} 
+                      className="text-5xl font-serif tracking-tight hover:opacity-80 transition-opacity block"
+                    >
+                      {item.name}
+                    </Link>
+                  </motion.div>
+                </div>
+              ))}
+            </motion.nav>
+
+            <motion.div 
+              variants={linkVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="p-8 border-t border-white/10 flex justify-between text-sm opacity-60"
+            >
+              <div className="flex gap-6">
+                <Link href="#" className="hover:opacity-100 transition-opacity">Instagram</Link>
+                <Link href="#" className="hover:opacity-100 transition-opacity">Twitter</Link>
+              </div>
+              <div>hello@lumora.com</div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Profile Drawer */}
       <ProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
