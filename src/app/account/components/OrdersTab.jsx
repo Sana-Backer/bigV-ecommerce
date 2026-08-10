@@ -103,7 +103,7 @@ export default function OrdersTab() {
           status: data.status ? data.status.charAt(0).toUpperCase() + data.status.slice(1).toLowerCase() : "Pending",
           payment: data.payment_status ? data.payment_status.toLowerCase() : "pending",
           fulfillment: data.fulfillment_status ? data.fulfillment_status.charAt(0).toUpperCase() + data.fulfillment_status.slice(1).toLowerCase() : "Unfulfilled",
-          date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+          date: d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
           total: parseFloat(data.total_amount) || 0,
           subtotal: parseFloat(data.subtotal) || 0,
           shippingAmount: parseFloat(data.shipping_amount) || 0,
@@ -241,146 +241,159 @@ export default function OrdersTab() {
       {/* Order Details Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#2C332E]/5 flex items-center justify-center">
-                  <Package className="w-5 h-5 text-[#2C332E]" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-[#2C332E]">Order Details</h2>
-                  {selectedOrder && <p className="text-sm text-slate-500 font-medium">{selectedOrder.id}</p>}
-                </div>
+            <div className="flex items-start justify-between p-6 pb-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-700">Order Details</h2>
+                {selectedOrder && <p className="text-xs text-slate-400 mt-0.5">#{selectedOrder.id}</p>}
               </div>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsModalOpen(false);
                 }}
-                className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto">
+            <div className="p-6 pt-0 overflow-y-auto">
               {modalLoading ? (
                 <div className="flex justify-center py-20">
                   <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
                 </div>
               ) : selectedOrder ? (
-                <div className="space-y-8">
+                <div className="space-y-6">
                   
                   {/* Status Banner */}
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex flex-wrap gap-4 items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Order Status</p>
-                      <div className="flex items-center gap-2">
+                  <div className="bg-white rounded-xl py-3 px-4 border border-slate-200 flex items-center justify-between">
+                    <div className="flex-1 flex flex-col items-center justify-center border-r border-slate-100">
+                      <span className="text-xs font-medium text-slate-500 mb-1.5">Status</span>
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                        selectedOrder.status === 'Delivered' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                        selectedOrder.status === 'Cancelled' ? 'bg-rose-50 text-rose-600 border-rose-100' : 
+                        'bg-blue-50 text-blue-600 border-blue-100'
+                      }`}>
                         {selectedOrder.status === 'Delivered' ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          <CheckCircle2 className="w-3.5 h-3.5" />
                         ) : selectedOrder.status === 'Cancelled' ? (
-                          <AlertCircle className="w-5 h-5 text-rose-500" />
+                          <AlertCircle className="w-3.5 h-3.5" />
                         ) : (
-                          <Clock className="w-5 h-5 text-blue-500" />
+                          <CheckCircle2 className="w-3.5 h-3.5" />
                         )}
-                        <span className="font-bold text-slate-800 text-lg">{selectedOrder.status}</span>
+                        <span>{selectedOrder.status}</span>
                       </div>
                     </div>
-                    <div className="w-px h-10 bg-slate-200 hidden md:block" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Placed On</p>
-                      <p className="font-semibold text-slate-700">{selectedOrder.date}</p>
+                    
+                    <div className="flex-1 flex flex-col items-center justify-center border-r border-slate-100">
+                      <span className="text-xs font-medium text-slate-500 mb-1.5">Date</span>
+                      <span className="text-sm text-slate-700 font-medium">
+                        {selectedOrder.date}
+                      </span>
                     </div>
-                    <div className="w-px h-10 bg-slate-200 hidden md:block" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Payment</p>
-                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${getPaymentColor(selectedOrder.payment)}`}>
-                        {selectedOrder.payment}
+                    
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      <span className="text-xs font-medium text-slate-500 mb-1.5">Payment</span>
+                      <span className="text-sm text-slate-700 font-medium capitalize">
+                        {selectedOrder.payment === 'paid' ? 'Paid via Card' : selectedOrder.payment}
                       </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Items List */}
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Items</h3>
-                      <div className="space-y-3">
-                        {selectedOrder.products.map((item, idx) => (
-                          <div key={idx} className="flex gap-4 p-3 rounded-xl border border-slate-100 bg-white">
-                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 shrink-0">
-                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-slate-800 text-sm truncate">{item.name}</h4>
-                              <p className="text-xs text-slate-500 mt-1">Qty: {item.quantity}</p>
-                              <p className="font-bold text-[#2C332E] mt-1">₹{(item.price * item.quantity).toFixed(2)}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Items Ordered */}
+                  <div className="space-y-3">
+                    <div className="border-b border-slate-100 pb-2">
+                      <h3 className="text-sm font-semibold text-slate-700">Items Ordered</h3>
                     </div>
-
-                    {/* Order Summary & Details */}
-                    <div className="space-y-6">
-                      <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
-                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Summary</h3>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between text-slate-600">
-                            <span>Subtotal</span>
-                            <span>₹{selectedOrder.subtotal.toFixed(2)}</span>
+                    <div className="space-y-3">
+                      {selectedOrder.products.map((item, idx) => (
+                        <div key={idx} className="flex gap-4 p-3 rounded-xl border border-slate-200 bg-white">
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 shrink-0 flex items-center justify-center">
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex justify-between text-slate-600">
-                            <span>Shipping</span>
-                            <span>{selectedOrder.shippingAmount === 0 ? "FREE" : `₹${selectedOrder.shippingAmount.toFixed(2)}`}</span>
-                          </div>
-                          {selectedOrder.discountAmount > 0 && (
-                            <div className="flex justify-between text-emerald-600">
-                              <span>Discount</span>
-                              <span>-₹{selectedOrder.discountAmount.toFixed(2)}</span>
+                          <div className="flex-1 flex justify-between">
+                            <div>
+                              <h4 className="text-sm font-medium text-slate-700">{item.name.split(' - ')[0]}</h4>
+                              {item.name.includes(' - ') && (
+                                <p className="text-xs text-slate-500 mt-1">Shade: <span className="capitalize">{item.name.split(' - ')[1]}</span></p>
+                              )}
+                              <p className="text-xs text-slate-500 mt-1.5">Qty: {item.quantity}</p>
                             </div>
-                          )}
-                          <div className="flex justify-between text-slate-600">
-                            <span>Tax</span>
-                            <span>₹{selectedOrder.taxAmount.toFixed(2)}</span>
-                          </div>
-                          <div className="pt-3 mt-3 border-t border-slate-100 flex justify-between items-center">
-                            <span className="font-bold text-slate-800">Total</span>
-                            <span className="text-lg font-black text-[#2C332E]">₹{selectedOrder.total.toFixed(2)}</span>
+                            <div className="text-sm font-medium text-slate-700">
+                              ₹{(item.price * item.quantity).toFixed(2)}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                  </div>
 
-                      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3">Shipping Details</h3>
-                        <p className="text-sm text-slate-600 leading-relaxed">
-                          {selectedOrder.shippingAddress}
-                        </p>
+                  {/* Order Summary */}
+                  <div className="space-y-3">
+                    <div className="border-b border-slate-100 pb-2">
+                      <h3 className="text-sm font-semibold text-slate-700">Order Summary</h3>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Subtotal</span>
+                        <span className="text-slate-700 font-medium">₹{selectedOrder.subtotal.toFixed(2)}</span>
                       </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Shipping</span>
+                        <span className={selectedOrder.shippingAmount === 0 ? "text-emerald-600 font-medium" : "text-slate-700 font-medium"}>
+                          {selectedOrder.shippingAmount === 0 ? "Free" : `₹${selectedOrder.shippingAmount.toFixed(2)}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-500">Tax</span>
+                        <span className="text-slate-700 font-medium">₹{selectedOrder.taxAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
+                        <span className="text-sm font-bold text-slate-800">Total</span>
+                        <span className="text-sm font-bold text-slate-800">₹{selectedOrder.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Shipping Details */}
+                  <div className="space-y-3">
+                    <div className="border-b border-slate-100 pb-2">
+                      <h3 className="text-sm font-semibold text-slate-700">Shipping Details</h3>
+                    </div>
+                    <div className="bg-white rounded-xl border border-slate-200 p-4">
+                      <p className="text-sm text-slate-600 leading-relaxed">
+                        {selectedOrder.shippingAddress}
+                      </p>
                     </div>
                   </div>
 
                   {/* Order Status Timeline */}
                   {selectedOrder.history && selectedOrder.history.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-slate-100 p-6">
-                      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Order Timeline</h3>
-                      <div className="space-y-2">
-                        {selectedOrder.history.map((hist, idx) => (
-                          <div key={idx} className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
-                            <div className="flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-[#2C332E]" />
-                              <span className="font-bold text-[#2C332E] text-sm capitalize">
-                                {hist.new_status}
-                                {hist.reason && <span className="text-slate-400 font-normal text-xs ml-2 hidden sm:inline-block truncate max-w-[150px] md:max-w-xs">({hist.reason})</span>}
+                    <div className="space-y-3">
+                      <div className="border-b border-slate-100 pb-2">
+                        <h3 className="text-sm font-semibold text-slate-700">Order Timeline</h3>
+                      </div>
+                      <div className="bg-white rounded-xl border border-slate-200 p-4">
+                        <div className="space-y-3">
+                          {selectedOrder.history.map((hist, idx) => (
+                            <div key={idx} className="flex items-center justify-between py-1.5 border-b border-slate-50 last:border-0">
+                              <div className="flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                <span className="font-medium text-slate-700 text-sm capitalize">
+                                  {hist.new_status}
+                                  {hist.reason && <span className="text-slate-400 font-normal text-xs ml-2 hidden sm:inline-block truncate max-w-[120px]">({hist.reason})</span>}
+                                </span>
+                              </div>
+                              <span className="text-xs text-slate-400 font-medium whitespace-nowrap ml-4">
+                                {new Date(hist.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </span>
                             </div>
-                            <span className="text-xs text-slate-400 font-medium whitespace-nowrap ml-4">
-                              {new Date(hist.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -391,14 +404,12 @@ export default function OrdersTab() {
 
             {/* Modal Footer */}
             {selectedOrder && selectedOrder.isCancellable && (
-              <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between rounded-b-3xl">
-                <div>
-                  {cancelError && <p className="text-sm text-rose-500 font-medium">{cancelError}</p>}
-                </div>
+              <div className="p-4 border-t border-slate-100 bg-white flex items-center justify-end rounded-b-xl">
+                {cancelError && <p className="text-xs text-rose-500 font-medium mr-4">{cancelError}</p>}
                 <button
                   onClick={handleCancelOrder}
                   disabled={cancelling}
-                  className="px-6 py-2.5 rounded-xl border border-rose-200 text-rose-600 font-bold text-sm hover:bg-rose-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-lg border border-rose-300 text-rose-500 text-sm font-medium hover:bg-rose-50 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {cancelling && <Loader2 className="w-4 h-4 animate-spin" />}
                   Cancel Order

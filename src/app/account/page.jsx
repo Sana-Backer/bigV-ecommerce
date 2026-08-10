@@ -8,6 +8,7 @@ import ProfileTab from "./components/ProfileTab";
 import AddressTab from "./components/AddressTab";
 import OrdersTab from "./components/OrdersTab";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 
 export default function AccountPage() {
   const [user, setUser] = useState(null);
@@ -63,8 +64,9 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F4F0] font-sans pb-20 pt-10">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-[#F5F4F0] font-sans pb-20 ">
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-6 pt-15">
 
         {/* Page Header */}
         <div className="mb-10">
@@ -79,8 +81,8 @@ export default function AccountPage() {
             <button
               onClick={() => setActiveTab("profile")}
               className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold text-left ${activeTab === "profile"
-                  ? "bg-[#2C332E] text-white shadow-lg"
-                  : "text-[#5A635B] hover:bg-white hover:shadow-sm"
+                ? "bg-[#2C332E] text-white shadow-lg"
+                : "text-[#5A635B] hover:bg-white hover:shadow-sm"
                 }`}
             >
               <User size={20} />
@@ -89,8 +91,8 @@ export default function AccountPage() {
             <button
               onClick={() => setActiveTab("addresses")}
               className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold text-left ${activeTab === "addresses"
-                  ? "bg-[#2C332E] text-white shadow-lg"
-                  : "text-[#5A635B] hover:bg-white hover:shadow-sm"
+                ? "bg-[#2C332E] text-white shadow-lg"
+                : "text-[#5A635B] hover:bg-white hover:shadow-sm"
                 }`}
             >
               <MapPin size={20} />
@@ -99,8 +101,8 @@ export default function AccountPage() {
             <button
               onClick={() => setActiveTab("orders")}
               className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all font-bold text-left ${activeTab === "orders"
-                  ? "bg-[#2C332E] text-white shadow-lg"
-                  : "text-[#5A635B] hover:bg-white hover:shadow-sm"
+                ? "bg-[#2C332E] text-white shadow-lg"
+                : "text-[#5A635B] hover:bg-white hover:shadow-sm"
                 }`}
             >
               <Package size={20} />
