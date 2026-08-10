@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { getMeApi } from "@/services/auth";
 import { Loader2, User, MapPin, Package, LogOut } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +10,7 @@ import OrdersTab from "./components/OrdersTab";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
-export default function AccountPage() {
+function AccountPageContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
@@ -130,5 +130,17 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F5F4F0] flex justify-center items-center">
+        <Loader2 className="animate-spin text-[#2C332E]" size={48} />
+      </div>
+    }>
+      <AccountPageContent />
+    </Suspense>
   );
 }
