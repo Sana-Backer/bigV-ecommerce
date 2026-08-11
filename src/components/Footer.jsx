@@ -125,7 +125,7 @@ const Footer = () => {
             </div>
 
             {/* LINKS WRAPPER */}
-            <div className="order-2 md:order-1 w-full md:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-4 lg:gap-x-12 mt-2 md:mt-0">
+            <div className="order-2 md:order-1 w-full md:col-span-7 grid grid-cols-3 md:grid-cols-3 gap-y-12 gap-x-1 lg:gap-x-12 mt-2 md:mt-0">
               
               {/* EXPLORE */}
               <div className="flex flex-col">
@@ -160,7 +160,7 @@ const Footer = () => {
               </div>
 
               {/* CONTACT US */}
-              <div className="flex flex-col col-span-2 md:col-span-1">
+              <div className="flex flex-col">
                 <h3 className="text-[#767676] text-xs font-semibold tracking-[0.2em] uppercase mb-6">
                   CONTACT US
                 </h3>
