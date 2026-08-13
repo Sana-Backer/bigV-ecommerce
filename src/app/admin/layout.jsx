@@ -1,18 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function AdminLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
 
   const isLoginPage = pathname === "/admin/login";
 
+  useEffect(() => {
+    if (!isLoginPage) {
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        router.push("/admin/login");
+      } else {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
+  }, [isLoginPage, pathname, router]);
+
   if (isLoginPage) {
     return <div className="min-h-screen bg-[#0F172A] w-full">{children}</div>;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-[#F5FAFFCC]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2C3B5E] border-t-transparent"></div>
+      </div>
+    );
   }
 
   return (

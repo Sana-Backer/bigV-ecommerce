@@ -16,8 +16,10 @@ import {
   Ticket,
   Image as ImageIcon,
   Settings,
-  Sparkles
+  Sparkles,
+  LogOut
 } from "lucide-react";
+import { logoutApi } from "@/services/auth";
 
 export default function Sidebar({ className = "", onClose }) {
   const pathname = usePathname();
@@ -44,6 +46,22 @@ export default function Sidebar({ className = "", onClose }) {
       return pathname === "/admin" || pathname === "/admin/dashboard";
     }
     return pathname?.startsWith(href);
+  };
+
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("adminRefreshToken");
+    try {
+      if (refreshToken) {
+        await logoutApi({ refresh: refreshToken });
+      }
+    } catch (e) {
+      console.error("Logout API call failed:", e);
+    } finally {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminUser");
+      localStorage.removeItem("adminRefreshToken");
+      window.location.href = "/admin/login";
+    }
   };
 
   return (
@@ -103,14 +121,23 @@ export default function Sidebar({ className = "", onClose }) {
 
       {/* Bottom Footer Section (Optional, nice branding or user stats helper) */}
       <div className="p-4 border-t border-[#E2E8F0]/80 bg-[#EDF3F7]/50">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-full bg-[#2C3B5E]/10 flex items-center justify-center font-bold text-xs text-[#2C3B5E]">
-            AD
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-[#2C3B5E]/10 flex items-center justify-center font-bold text-xs text-[#2C3B5E] shrink-0">
+              AD
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-xs font-semibold text-[#2C3B5E] truncate">Admin User</span>
+              <span className="text-[10px] text-[#7E8B9B] truncate">admin@lumora.com</span>
+            </div>
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-xs font-semibold text-[#2C3B5E] truncate">Admin User</span>
-            <span className="text-[10px] text-[#7E8B9B] truncate">admin@lumora.com</span>
-          </div>
+          <button 
+            onClick={handleLogout}
+            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

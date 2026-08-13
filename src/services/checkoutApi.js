@@ -1,38 +1,19 @@
 import { commonAPI } from "./commonAPI";
 import { api } from "./serverUrl";
-
-// Helper to get guest token
-const getGuestToken = () => {
-  if (typeof window !== "undefined") {
-    let guestToken = localStorage.getItem("guestToken");
-    if (!guestToken) {
-      guestToken = crypto.randomUUID();
-      localStorage.setItem("guestToken", guestToken);
-    }
-    return guestToken;
-  }
-  return null;
-};
-
-// Helper to add guest token header if user is not authenticated
-const getAuthHeaders = () => {
-  const headers = {};
-  if (typeof window !== "undefined" && !localStorage.getItem("customerToken")) {
-    headers["X-Guest-Token"] = getGuestToken();
-  }
-  return headers;
-};
+import { getAuthHeaders } from "./cartApi";
 
 // Validate cart for checkout
 // reqBody is typically empty but can contain specific validation flags if needed by backend
 export const checkoutValidateApi = async (reqBody = {}) => {
-  return await commonAPI("POST", `${api}/checkout/validate/`, reqBody, getAuthHeaders());
+  const headers = await getAuthHeaders();
+  return await commonAPI("POST", `${api}/checkout/validate/`, reqBody, headers);
 };
 
 // Get checkout quote (pricing, shipping, taxes, discounts)
 // reqBody can optionally contain { coupon_code: "..." }
 export const checkoutQuoteApi = async (reqBody = {}) => {
-  return await commonAPI("POST", `${api}/checkout/quote/`, reqBody, getAuthHeaders());
+  const headers = await getAuthHeaders();
+  return await commonAPI("POST", `${api}/checkout/quote/`, reqBody, headers);
 };
 
 // Create the final order
@@ -51,5 +32,6 @@ reqBody example:
 }
 */
 export const createOrderApi = async (reqBody) => {
-  return await commonAPI("POST", `${api}/checkout/create-order/`, reqBody, getAuthHeaders());
+  const headers = await getAuthHeaders();
+  return await commonAPI("POST", `${api}/checkout/create-order/`, reqBody, headers);
 };
