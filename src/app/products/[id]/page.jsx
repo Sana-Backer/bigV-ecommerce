@@ -22,7 +22,7 @@ import {
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Footer from "@/components/Footer";
-import { getProductDetailApi } from "@/services/productsApi";
+import { getProductDetailApi, getFeaturedProductsApi } from "@/services/productsApi";
 import { addToCartApi } from "@/services/cartApi";
 import { addToWishlistApi } from "@/services/wishlistApi";
 
@@ -34,15 +34,6 @@ const SHADES = [
   { name: "CRIMSON RED", color: "#8B2635", price: "₹949", image: "/p-details-hero.png", bg: "bg-[#E6C2C2]" },
   { name: "PEACH PINK", color: "#DDA15E", price: "₹899", image: "/p-details-hero.png", bg: "bg-[#F3E1D3]" },
   { name: "NAKED PLUM", color: "#6F2D4C", price: "₹949", image: "/p-details-hero.png", bg: "bg-[#D8B4D4]" },
-];
-
-// Carousel featured products
-const FEATURED_PRODUCTS = [
-  { name: "Face Mist", price: "₹399.00", image: "/product1.png", tag: "PURE BRILLIANCE", bg: "bg-[#F0D4D0]" },
-  { name: "Lipstick", price: "₹399.00", image: "/product2.png", tag: "PURE BRILLIANCE", bg: "bg-[#F0D4D0]" },
-  { name: "Mascara", price: "₹399.00", image: "/product2.png", tag: "PURE BRILLIANCE", bg: "bg-[#F0D4D0]" },
-  { name: "Face Mist", price: "₹399.00", image: "/product1.png", tag: "PURE BRILLIANCE", bg: "bg-[#F0D4D0]" },
-  { name: "Lipstick", price: "₹399.00", image: "/product2.png", tag: "PURE BRILLIANCE", bg: "bg-[#F0D4D0]" },
 ];
 
 export default function ProductDetailPage({ params: paramsPromise }) {
@@ -59,6 +50,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
   const [cartNotification, setCartNotification] = useState("");
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [mobileImageIndex, setMobileImageIndex] = useState(0);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
 
   // Refs
   const pageRef = useRef(null);
@@ -163,9 +155,22 @@ export default function ProductDetailPage({ params: paramsPromise }) {
         setLoading(false);
       }
     };
+    
+    const fetchFeatured = async () => {
+      try {
+        const res = await getFeaturedProductsApi();
+        if (res.status === 200) {
+          setFeaturedProducts(res.data?.data || res.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch featured products:", err);
+      }
+    };
+
     if (productId) {
       fetchProduct();
     }
+    fetchFeatured();
   }, [productId]);
 
   // GSAP Animations
@@ -1012,15 +1017,18 @@ export default function ProductDetailPage({ params: paramsPromise }) {
             ref={carouselRef}
             className="flex gap-6 sm:gap-8 py-6 overflow-x-auto scrollbar-none no-scrollbar snap-x snap-mandatory cursor-grab select-none will-change-transform"
           >
-            {FEATURED_PRODUCTS.map((prod, idx) => (
+            {featuredProducts.map((prod, idx) => {
+              const bg = prod.bg_color || "bg-[#F0D4D0]";
+              const image = prod.primary_image || prod.image || "/product1.png";
+              return (
               <div
-                key={idx}
-                className={`featured-card group relative w-[280px] sm:w-[320px] flex-shrink-0 rounded-[20px] ${prod.bg} p-5 sm:p-6 overflow-hidden transition-all duration-500 hover:-translate-y-1 snap-center`}
+                key={prod.id || idx}
+                className={`featured-card group relative w-[280px] sm:w-[320px] flex-shrink-0 rounded-[20px] ${bg} p-5 sm:p-6 overflow-hidden transition-all duration-500 hover:-translate-y-1 snap-center`}
               >
                 {/* Top Badge & Bag Icon */}
                 <div className="mb-4 flex items-center justify-between relative z-10">
                   <span className="text-[11px] font-medium tracking-wide bg-white text-[#2d3150] px-4 py-1.5 rounded-full uppercase">
-                    {prod.tag}
+                    PURE BRILLIANCE
                   </span>
                   <button className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#2d3150] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:scale-110 transition-transform">
                     <ShoppingBag size={14} strokeWidth={2} />
@@ -1028,13 +1036,12 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                 </div>
 
                 {/* Product centered visual */}
-                <div className="relative h-[220px] sm:h-[280px] mb-6 select-none pointer-events-none">
-                  <Image
-                    src={prod.image}
+                <div className="relative h-[220px] sm:h-[280px] mb-6 select-none pointer-events-none flex items-center justify-center">
+                  <img
+                    src={image}
                     alt={prod.name}
-                    fill
                     draggable={false}
-                    className="object-contain scale-[1.02] transition-transform duration-700 ease-out group-hover:scale-105"
+                    className="w-full h-full object-contain scale-[1.02] transition-transform duration-700 ease-out group-hover:scale-105"
                   />
                 </div>
 
@@ -1044,11 +1051,11 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                     {prod.name}
                   </h3>
                   <span className="text-[#2d3150] text-[20px] font-normal" style={{ fontFamily: "'Actor', sans-serif" }}>
-                    {prod.price}
+                    ₹{prod.effective_price || prod.base_price || "0.00"}
                   </span>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
         </div>

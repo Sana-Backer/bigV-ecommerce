@@ -13,6 +13,10 @@ export const getProductDetailApi = async (id) => {
     return await commonAPI("GET", `${api}/products/${id}/`, "");
 };
 
+export const getFeaturedProductsApi = async () => {
+    return await commonAPI("GET", `${api}/products/featured/`, "");
+};
+
 export const getProductsByCategoryApi = async (slug) => {
     return await commonAPI("GET", `${api}/products/by-category/${slug}/`, "");
 };
