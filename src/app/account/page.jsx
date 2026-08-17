@@ -64,7 +64,7 @@ function AccountPageContent() {
 
   return (
     <div className="min-h-screen bg-[#F5F4F0] font-sans pb-20 ">
-      <Navbar />
+      <Navbar theme="light" />
       <div className="max-w-7xl mx-auto px-6 pt-15">
 
         {/* Page Header */}

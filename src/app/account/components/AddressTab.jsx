@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { getMyAddressesApi, addMyAddressApi, updateMyAddressApi, deleteMyAddressApi, patchMyAddressApi } from "@/services/auth";
-import { Loader2, Plus, Edit2, Trash2, MapPin, X, CheckCircle } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, MapPin, X, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function AddressTab() {
   const [addresses, setAddresses] = useState([]);
@@ -10,6 +10,12 @@ export default function AddressTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [notification, setNotification] = useState({ message: "", type: "success" });
+
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification({ message: "", type: "success" }), 3500);
+  };
 
   const [formData, setFormData] = useState({
     label: "",
@@ -95,11 +101,12 @@ export default function AddressTab() {
       }
       if (res.status === 200 || res.status === 201) {
         setModalOpen(false);
+        showNotification(editingId ? "Address updated successfully" : "Address added successfully", "success");
         fetchAddresses();
       }
     } catch (err) {
       console.error("Failed to save address", err);
-      alert(err.response?.data?.message || "Failed to save address");
+      showNotification(err.response?.data?.message || "Failed to save address", "error");
     } finally {
       setSubmitting(false);
     }
@@ -110,10 +117,12 @@ export default function AddressTab() {
       try {
         const res = await deleteMyAddressApi(id);
         if (res.status === 200 || res.status === 204) {
+          showNotification("Address deleted successfully", "success");
           fetchAddresses();
         }
       } catch (err) {
         console.error("Failed to delete address", err);
+        showNotification("Failed to delete address", "error");
       }
     }
   };
@@ -122,10 +131,12 @@ export default function AddressTab() {
     try {
       const res = await patchMyAddressApi(id, { is_default: true });
       if (res.status === 200) {
+        showNotification("Default address updated", "success");
         fetchAddresses();
       }
     } catch (err) {
       console.error("Failed to set default", err);
+      showNotification("Failed to set default address", "error");
     }
   };
 
@@ -328,6 +339,22 @@ export default function AddressTab() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Notification Toast */}
+      {notification.message && (
+        <div className={`fixed bottom-6 right-6 z-[100] py-4 px-6 rounded-xl shadow-[0_20px_50px_rgba(45,49,80,0.25)] flex items-center gap-3 animate-fade-in border ${
+          notification.type === 'success' 
+            ? 'bg-[#2d3150] text-[#F0D4DD] border-[#F0D4DD]/20' 
+            : 'bg-red-50 text-red-600 border-red-200'
+        }`}>
+          {notification.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 text-[#C18386]" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-500" />
+          )}
+          <span className="text-sm font-medium tracking-wide">{notification.message}</span>
         </div>
       )}
     </div>

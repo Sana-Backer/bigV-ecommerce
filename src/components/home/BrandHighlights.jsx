@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, Leaf, FlaskConical } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
@@ -376,21 +377,20 @@ const BrandHighlights = () => {
 
             </div>
 
-            {/* BUTTON */}
-            <button
-              className="
-                absolute top-6 right-6 w-13 h-13 rounded-full bg-[#393F59] text-[#F2F2F2] flex items-center justify-center transition-all duration-500 hover:scale-95 rotate-340 origin-left">
-              <ArrowRight className="w-6 h-6 stroke-[2.0]" />
-            </button>
+            {/* BUTTON & SHOP NOW */}
+            <Link href="/products" className="group">
+              <div
+                className="
+                  absolute top-6 right-6 w-13 h-13 rounded-full bg-[#393F59] text-[#F2F2F2] flex items-center justify-center transition-all duration-500 hover:scale-95 rotate-340 origin-left">
+                <ArrowRight className="w-6 h-6 stroke-[2.0]" />
+              </div>
 
-            {/* SHOP NOW */}
-            <div className="absolute top-19 right-4 ">
-
-              <p className="text-[#130D40] text-xs tracking-[0.1rem] font-medium uppercase underline">
-                Shop Now
-              </p>
-
-            </div>
+              <div className="absolute top-19 right-4 ">
+                <p className="text-[#130D40] text-xs tracking-[0.1rem] font-medium uppercase underline">
+                  Shop Now
+                </p>
+              </div>
+            </Link>
 
           </div>
 
@@ -445,12 +445,12 @@ const BrandHighlights = () => {
             </p>
 
 
-            <div className="flex flex-col items-center lg:items-start justify-center">
-              <button
+            <Link href="/products" className="flex flex-col items-center lg:items-start justify-center group">
+              <div
                 className="
                    w-10 h-10  rounded-full bg-[#393F59] text-[#F2F2F2] flex items-center justify-center transition-all duration-500 hover:scale-95 rotate-340 origin-left">
                 <ArrowRight className="w-6 h-6 stroke-[2.0]" />
-              </button>
+              </div>
 
               {/* SHOP NOW */}
               <div className=" top-19  ">
@@ -460,8 +460,7 @@ const BrandHighlights = () => {
                 </p>
 
               </div>
-
-            </div>
+            </Link>
 
           </div>
 

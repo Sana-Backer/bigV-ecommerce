@@ -144,7 +144,7 @@ const Navbar = ({ theme = "dark" }) => {
   };
 
   // Dynamic classes for text and background
-  const textColorClass = isScrolled ? "text-[#353B50]" : (isDark ? "text-white" : (isWhite ? "text-[#393F59]" : "text-black"));
+  const textColorClass = isScrolled ? "text-[#353B50]" : (isDark ? "text-white" : (isWhite ? "text-[#393F59]" : "text-[#393F59]"));
   const bgClass = isScrolled ? "bg-[#F2F2F2]/95 backdrop-blur-md shadow-sm" : "bg-transparent";
 
   return (
@@ -200,8 +200,8 @@ const Navbar = ({ theme = "dark" }) => {
                   <div
                     id="user-dropdown"
                     className={`absolute right-0 mt-3 w-56 rounded-2xl p-4 shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${isScrolled || isWhite || theme === "light"
-                        ? "bg-white/95 border-slate-200/60 text-[#353B50]"
-                        : "bg-[#1E293B]/95 border-slate-800 text-white"
+                      ? "bg-white/95 border-slate-200/60 text-[#353B50]"
+                      : "bg-[#1E293B]/95 border-slate-800 text-white"
                       }`}
                   >
                     {user ? (
@@ -273,8 +273,8 @@ const Navbar = ({ theme = "dark" }) => {
                           href="/login"
                           onClick={() => setIsDropdownOpen(false)}
                           className={`block text-center py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-sm ${isScrolled || isWhite || theme === "light"
-                              ? "bg-[#353B50] text-white hover:bg-[#434b66]"
-                              : "bg-white text-slate-900 hover:bg-slate-100"
+                            ? "bg-[#353B50] text-white hover:bg-[#434b66]"
+                            : "bg-white text-slate-900 hover:bg-slate-100"
                             }`}
                         >
                           Sign In
@@ -317,8 +317,8 @@ const Navbar = ({ theme = "dark" }) => {
                 <X size={28} strokeWidth={1.5} />
               </button>
             </div>
-            
-            <motion.nav 
+
+            <motion.nav
               variants={linkContainerVariants}
               initial="initial"
               animate="animate"
@@ -333,9 +333,9 @@ const Navbar = ({ theme = "dark" }) => {
               ].map((item, i) => (
                 <div key={i} className="overflow-hidden">
                   <motion.div variants={linkVariants}>
-                    <Link 
-                      href={item.href} 
-                      onClick={() => setIsMobileMenuOpen(false)} 
+                    <Link
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
                       className="text-5xl font-serif tracking-tight hover:opacity-80 transition-opacity block"
                     >
                       {item.name}
@@ -345,7 +345,7 @@ const Navbar = ({ theme = "dark" }) => {
               ))}
             </motion.nav>
 
-            <motion.div 
+            <motion.div
               variants={linkVariants}
               initial="initial"
               animate="animate"

@@ -1,5 +1,6 @@
 import { commonAPI } from "./commonAPI";
 import { api } from "./serverUrl";
+import { getAuthHeaders } from "./cartApi";
 
 // Fetch orders for admin
 export const getAdminOrdersApi = async (queryString = "") => {
@@ -37,15 +38,24 @@ export const cancelAdminOrderApi = async (id, cancelData = {}) => {
 
 // Fetch customer orders (My Orders)
 export const getMyOrdersApi = async (queryString = "") => {
-  return await commonAPI("GET", `${api}/orders/${queryString}`, "");
+  const headers = await getAuthHeaders();
+  return await commonAPI("GET", `${api}/orders/${queryString}`, "", headers);
 };
 
 // Fetch customer order details
 export const getMyOrderDetailApi = async (id) => {
-  return await commonAPI("GET", `${api}/orders/${id}/`, "");
+  const headers = await getAuthHeaders();
+  return await commonAPI("GET", `${api}/orders/${id}/`, "", headers);
+};
+
+// Fetch customer order details by order_number
+export const getMyOrderByNumberApi = async (orderNumber) => {
+  const headers = await getAuthHeaders();
+  return await commonAPI("GET", `${api}/orders/by-number/${orderNumber}/`, "", headers);
 };
 
 // Cancel customer order
 export const cancelMyOrderApi = async (id, cancelData = {}) => {
-  return await commonAPI("POST", `${api}/orders/${id}/cancel/`, cancelData);
+  const headers = await getAuthHeaders();
+  return await commonAPI("POST", `${api}/orders/${id}/cancel/`, cancelData, headers);
 };

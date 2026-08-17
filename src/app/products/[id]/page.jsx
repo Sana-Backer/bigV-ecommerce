@@ -58,6 +58,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
   const [activeTab, setActiveTab] = useState("about");
   const [cartNotification, setCartNotification] = useState("");
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [mobileImageIndex, setMobileImageIndex] = useState(0);
 
   // Refs
   const pageRef = useRef(null);
@@ -379,9 +380,9 @@ export default function ProductDetailPage({ params: paramsPromise }) {
           {/* Left Side: Product Image & Gallery */}
           <div className="w-full lg:w-1/2 flex flex-col-reverse lg:flex-row justify-start items-start gap-4 lg:gap-8 relative mb-2 lg:mb-0">
 
-            {/* Thumbnail Gallery */}
+            {/* Thumbnail Gallery (Desktop Only) */}
             {product?.images && product.images.length > 0 && (
-              <div className="flex flex-row lg:flex-col gap-4 w-full lg:w-auto overflow-x-auto lg:overflow-y-auto scrollbar-hide pb-2 lg:pb-0 h-auto lg:max-h-[35rem]">
+              <div className="hidden lg:flex flex-col gap-4 w-auto overflow-y-auto no-scrollbar pb-0 max-h-[35rem]">
                 {product.images.map((img, idx) => (
                   <button
                     key={img.id || idx}
@@ -392,7 +393,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                         { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }
                       );
                     }}
-                    className={`shrink-0 w-20 h-20 sm:w-24 sm:h-24 lg:w-[100px] lg:h-[100px] bg-white border transition-all duration-300 p-2 flex items-center justify-center ${activeImage === img.image
+                    className={`shrink-0 lg:w-[100px] lg:h-[100px] bg-white border transition-all duration-300 p-2 flex items-center justify-center ${activeImage === img.image
                       ? "border-[#393F59] shadow-sm"
                       : "border-transparent hover:border-gray-200"
                       }`}
@@ -407,17 +408,93 @@ export default function ProductDetailPage({ params: paramsPromise }) {
               </div>
             )}
 
-            {/* Main Active Image */}
+            {/* Main Active Image / Mobile Carousel */}
             <div
               ref={mainImageRef}
-              className="hero-product-img relative flex-1 w-full lg:w-auto max-w-[35rem] aspect-square flex items-center justify-center select-none transition-all"
+              className="hero-product-img relative flex-1 w-full lg:w-auto max-w-[35rem] aspect-square flex flex-col lg:items-center justify-center select-none transition-all mb-6 lg:mb-0"
             >
-              <img
-                src={activeImage || product?.images?.[0]?.image || selectedShade?.image || "/placeholder.png"}
-                alt={product?.name || "Product Hero"}
-                draggable={false}
-                className="w-full h-full object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.12)]"
-              />
+              {/* Desktop Single Image */}
+              <div className="hidden lg:flex w-full h-full items-center justify-center">
+                <img
+                  src={activeImage || product?.images?.[0]?.image || selectedShade?.image || "/placeholder.png"}
+                  alt={product?.name || "Product Hero"}
+                  draggable={false}
+                  className="w-full h-full object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.12)]"
+                />
+              </div>
+
+              {/* Mobile Swipeable Gallery */}
+              <div
+                className="flex lg:hidden w-full h-full overflow-x-auto snap-x snap-mandatory no-scrollbar cursor-grab scroll-smooth"
+                onScroll={(e) => {
+                  const scrollLeft = e.target.scrollLeft;
+                  const width = e.target.clientWidth;
+                  const index = Math.round(scrollLeft / width);
+                  setMobileImageIndex(index);
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.dataset.isDown = "true";
+                  e.currentTarget.dataset.startX = e.pageX - e.currentTarget.offsetLeft;
+                  e.currentTarget.dataset.scrollLeftStart = e.currentTarget.scrollLeft;
+                  e.currentTarget.classList.add('cursor-grabbing');
+                  e.currentTarget.classList.remove('cursor-grab', 'snap-mandatory', 'scroll-smooth');
+                }}
+                onMouseLeave={(e) => {
+                  if (e.currentTarget.dataset.isDown === "true") {
+                    e.currentTarget.dataset.isDown = "false";
+                    e.currentTarget.classList.remove('cursor-grabbing');
+                    e.currentTarget.classList.add('cursor-grab', 'snap-mandatory', 'scroll-smooth');
+                  }
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.dataset.isDown = "false";
+                  e.currentTarget.classList.remove('cursor-grabbing');
+                  e.currentTarget.classList.add('cursor-grab', 'snap-mandatory', 'scroll-smooth');
+                }}
+                onMouseMove={(e) => {
+                  if (e.currentTarget.dataset.isDown !== "true") return;
+                  e.preventDefault();
+                  const x = e.pageX - e.currentTarget.offsetLeft;
+                  const startX = parseFloat(e.currentTarget.dataset.startX || "0");
+                  const scrollLeftStart = parseFloat(e.currentTarget.dataset.scrollLeftStart || "0");
+                  const walk = (x - startX) * 1.5;
+                  e.currentTarget.scrollLeft = scrollLeftStart - walk;
+                }}
+              >
+                {product?.images && product.images.length > 0 ? (
+                  product.images.map((img, idx) => (
+                    <div key={idx} className="w-full h-full shrink-0 snap-center flex items-center justify-center p-4">
+                      <img
+                        src={img.image}
+                        alt={img.alt_text || `Image ${idx + 1}`}
+                        draggable={false}
+                        className="w-full h-full object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.12)]"
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <div className="w-full h-full shrink-0 snap-center flex items-center justify-center p-4">
+                    <img
+                      src={activeImage || selectedShade?.image || "/placeholder.png"}
+                      alt="Product"
+                      draggable={false}
+                      className="w-full h-full object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.12)]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Dash Indicators */}
+              {product?.images && product.images.length > 1 && (
+                <div className="flex lg:hidden absolute -bottom-4 left-1/2 -translate-x-1/2 gap-2">
+                  {product.images.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-1 rounded-full transition-all duration-300 ${mobileImageIndex === idx ? 'w-6 bg-[#2d3150]' : 'w-4 bg-[#2d3150]/30'}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
