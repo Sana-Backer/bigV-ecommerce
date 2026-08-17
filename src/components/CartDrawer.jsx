@@ -19,9 +19,10 @@ export default function CartDrawer({ isOpen, onClose }) {
   const [couponCodeInput, setCouponCodeInput] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState("");
-  
+
   const [validating, setValidating] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
+  const [itemErrors, setItemErrors] = useState({});
 
   const handleApplyCoupon = async () => {
     if (!couponCodeInput.trim()) return;
@@ -142,6 +143,7 @@ export default function CartDrawer({ isOpen, onClose }) {
   const handleProceedToCheckout = async () => {
     setValidating(true);
     setValidationErrors([]);
+    setItemErrors({});
     try {
       const response = await checkoutValidateApi();
       if (response && response.status === 200) {
@@ -153,12 +155,19 @@ export default function CartDrawer({ isOpen, onClose }) {
           // Validation failed due to stock/price changes
           const items = response.data?.data?.items || response.data?.items || [];
           const problems = [];
+          const newItemErrors = {};
+
           items.forEach(item => {
             if (item.problems && item.problems.length > 0) {
-              problems.push(`${item.name}: ${item.problems.join(", ")}`);
+              newItemErrors[item.cart_item_id] = item.problems;
             }
           });
-          setValidationErrors(problems);
+
+          setItemErrors(newItemErrors);
+
+          if (Object.keys(newItemErrors).length === 0) {
+            setValidationErrors(["Failed to validate cart. Please try again."]);
+          }
         }
       }
     } catch (error) {
@@ -229,14 +238,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                     <span className="text-[28px] font-medium leading-none mb-1 translate-x-3">
                       No
                     </span>
-                    <span 
+                    <span
                       className="text-[48px] leading-none"
                       style={{ fontFamily: "var(--font-yellowtail)", letterSpacing: "1px" }}
                     >
                       Cart Items
                     </span>
                   </div>
-                  <button 
+                  <button
                     onClick={onClose}
                     className="px-6 py-3 bg-[#9A353B] text-white text-[10px] font-bold uppercase tracking-widest rounded-full hover:bg-[#852C31] transition-colors shadow-sm"
                   >
@@ -248,17 +257,17 @@ export default function CartDrawer({ isOpen, onClose }) {
                   {cartItems.map((item) => (
                     <div key={item.id} className={`flex gap-4 p-4 bg-white rounded-xl border border-[#E6E4DD] shadow-sm relative ${updatingItemId === item.id ? 'opacity-50' : ''}`}>
                       <div className="w-20 h-20 shrink-0 bg-[#F5F4F0] rounded-lg overflow-hidden border border-[#E6E4DD]/50">
-                         {item.variant?.primary_image || item.product?.primary_image ? (
-                            <img src={item.variant?.primary_image || item.product?.primary_image} alt={item.product?.name} className="w-full h-full object-cover" />
-                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
-                         )}
+                        {item.variant?.primary_image || item.product?.primary_image ? (
+                          <img src={item.variant?.primary_image || item.product?.primary_image} alt={item.product?.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Image</div>
+                        )}
                       </div>
                       <div className="flex-1 flex flex-col justify-between">
                         <div>
                           <div className="flex justify-between items-start gap-2">
                             <h3 className="text-sm font-bold text-[#2C332E] line-clamp-2">{item.product?.name}</h3>
-                            <button 
+                            <button
                               onClick={() => removeItem(item.id)}
                               disabled={updatingItemId === item.id}
                               className="text-gray-400 hover:text-rose-500 transition-colors p-1"
@@ -267,12 +276,19 @@ export default function CartDrawer({ isOpen, onClose }) {
                             </button>
                           </div>
                           {item.variant && (
-                            <p className="text-xs text-[#7B827C] mt-1">{item.variant.name || item.variant.attributes?.size}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-[#7B827C]">{item.variant.name || item.variant.attributes?.size}</p>
+                              {item.variant.stock_quantity === 0 && (
+                                <span className="text-[9px] font-bold text-rose-600 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded-sm uppercase tracking-wider">
+                                  Out of Stock
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center justify-between mt-3">
                           <div className="flex items-center border border-[#E6E4DD] rounded-md overflow-hidden bg-white">
-                            <button 
+                            <button
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               disabled={updatingItemId === item.id || item.quantity <= 1}
                               className="w-7 h-7 flex items-center justify-center text-[#5A635B] hover:bg-[#F5F4F0] disabled:opacity-50"
@@ -280,9 +296,9 @@ export default function CartDrawer({ isOpen, onClose }) {
                               <Minus size={12} />
                             </button>
                             <span className="w-8 text-center text-xs font-bold text-[#2C332E]">{item.quantity}</span>
-                            <button 
+                            <button
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              disabled={updatingItemId === item.id}
+                              disabled={updatingItemId === item.id || (item.variant && item.quantity >= item.variant.stock_quantity)}
                               className="w-7 h-7 flex items-center justify-center text-[#5A635B] hover:bg-[#F5F4F0] disabled:opacity-50"
                             >
                               <Plus size={12} />
@@ -292,6 +308,18 @@ export default function CartDrawer({ isOpen, onClose }) {
                             ₹{item.line_total || (parseFloat(item.current_price) * item.quantity).toFixed(2)}
                           </span>
                         </div>
+                        {itemErrors[item.id] && (
+                          <div className="mt-3 p-2 bg-rose-50 border border-rose-100 rounded-md">
+                            <ul className="text-[11px] font-medium text-rose-600 space-y-1">
+                              {itemErrors[item.id].map((err, idx) => (
+                                <li key={idx} className="flex items-start gap-1">
+                                  <span className="mt-[2px]">•</span>
+                                  <span>{err}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -310,7 +338,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                         <span className="text-emerald-700 font-bold text-xs uppercase tracking-wider">{cart.coupon_code}</span>
                         <span className="text-emerald-600 text-[10px]">Applied!</span>
                       </div>
-                      <button 
+                      <button
                         onClick={handleRemoveCoupon}
                         disabled={couponLoading}
                         className="text-emerald-600 hover:text-emerald-800 disabled:opacity-50"
@@ -320,14 +348,14 @@ export default function CartDrawer({ isOpen, onClose }) {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={couponCodeInput}
                         onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
                         placeholder="Coupon code"
                         className="flex-1 px-3 py-2 text-sm border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] uppercase placeholder:normal-case"
                       />
-                      <button 
+                      <button
                         onClick={handleApplyCoupon}
                         disabled={couponLoading || !couponCodeInput.trim()}
                         className="px-4 py-2 bg-[#F5F4F0] text-[#2C332E] text-xs font-bold rounded-lg hover:bg-[#E6E4DD] disabled:opacity-50 transition-colors"
@@ -354,7 +382,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <span>₹{summary?.grand_total || "0.00"}</span>
                 </div>
                 <p className="text-[10px] text-[#7B827C] text-center mb-2 mt-4">Shipping & taxes calculated at checkout</p>
-                
+
                 {/* Validation Errors */}
                 {validationErrors.length > 0 && (
                   <div className="bg-rose-50 border border-rose-100 p-3 rounded-lg mt-3">

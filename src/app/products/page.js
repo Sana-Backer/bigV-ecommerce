@@ -7,7 +7,7 @@ import SidebarFilter from "./components/SidebarFilter";
 import ProductGrid from "./components/ProductGrid";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import { getProductsApi, getProductsByCategoryApi } from "@/services/productsApi";
+import { getProductsApi, getProductsByCategoryApi, getFeaturedProductsApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
 
 export default function ProductsPage() {
@@ -63,6 +63,25 @@ export default function ProductsPage() {
             category: typeof p.category === 'object' ? p.category?.name?.toLowerCase() : p.category?.toLowerCase() || 'other',
             image: p.primary_image || p.image // Ensure image prop works if ProductCard expects it
           }));
+          
+          if (!selectedCategory) {
+            try {
+              const featRes = await getFeaturedProductsApi();
+              if (featRes.status === 200) {
+                const featRaw = featRes.data?.data || featRes.data || [];
+                const featFormatted = featRaw.map(p => ({
+                  ...p,
+                  category: 'featured',
+                  image: p.primary_image || p.image
+                }));
+                setProducts([...featFormatted, ...formattedProducts]);
+                return;
+              }
+            } catch (featErr) {
+              console.error("Failed to fetch featured products", featErr);
+            }
+          }
+          
           setProducts(formattedProducts);
         }
       } catch (err) {

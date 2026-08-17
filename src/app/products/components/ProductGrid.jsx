@@ -102,9 +102,17 @@ export default function ProductGrid({
   }, {});
 
   // Maintain the order of categories as they appear in the original list if possible
-  const categoryOrder = ["beauty care", "kitchen essential", "powders", "other"];
+  const categoryOrder = ["featured", "beauty care", "kitchen essential", "powders", "other"];
   const sortedCategories = Object.keys(groupedProducts).sort(
-    (a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b)
+    (a, b) => {
+      const indexA = categoryOrder.indexOf(a);
+      const indexB = categoryOrder.indexOf(b);
+      // If a category isn't in the list, put it at the end
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    }
   );
 
   return (
@@ -112,31 +120,53 @@ export default function ProductGrid({
       {sortedCategories.map((category) => (
         <div key={category} className="w-full flex flex-col gap-[26px]">
           {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:justify-between items-start md:items-end px-4 md:px-0 gap-6 md:gap-0">
-            <div>
-              <h2 className="text-[#393F59] text-4xl md:text-[2.75rem] leading-none font-DM_Serif_Display">
-                {getCategoryTitle(category)}
+          {category === 'featured' ? (
+            <div className="relative flex items-center justify-center w-full px-4 md:px-0 pt-6 pb-2">
+              <h2 className="text-[#2d3150] font-yellowtail text-5xl md:text-[4rem] leading-none text-center">
+                featured
               </h2>
-              <p className="text-[#2d3150] font-yellowtail text-3xl md:text-[2.25rem] leading-none mt-1 ml-1">
-                Products
-              </p>
+              <div className="absolute right-4 md:right-0 flex gap-[16px]">
+                <button 
+                  onClick={() => scrollLeft(category)}
+                  className="w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer bg-[#EAE8E4] hover:bg-[#dcd9d3] text-[#767676]/50 hover:text-[#393F59]"
+                >
+                  <ArrowLeft size={20} strokeWidth={1.5} />
+                </button>
+                <button 
+                  onClick={() => scrollRight(category)}
+                  className="w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer bg-[#EAE8E4] hover:bg-[#dcd9d3] text-[#393F59]"
+                >
+                  <ArrowRight size={20} strokeWidth={1.5} />
+                </button>
+              </div>
             </div>
-            {/* Arrows */}
-            <div className="flex gap-[16px] mb-2">
-              <button 
-                onClick={() => scrollLeft(category)}
-                className={`w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${getArrowBgColor(category)} text-[#767676]/50`}
-              >
-                <ArrowLeft size={20} strokeWidth={1.5} />
-              </button>
-              <button 
-                onClick={() => scrollRight(category)}
-                className={`w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${getArrowBgColor(category)} text-[#393F59]`}
-              >
-                <ArrowRight size={20} strokeWidth={1.5} />
-              </button>
+          ) : (
+            <div className="flex flex-col md:flex-row md:justify-between items-start md:items-end px-4 md:px-0 gap-6 md:gap-0">
+              <div>
+                <h2 className="text-[#393F59] text-4xl md:text-[2.75rem] leading-none font-DM_Serif_Display">
+                  {getCategoryTitle(category)}
+                </h2>
+                <p className="text-[#2d3150] font-yellowtail text-3xl md:text-[2.25rem] leading-none mt-1 ml-1">
+                  Products
+                </p>
+              </div>
+              {/* Arrows */}
+              <div className="flex gap-[16px] mb-2">
+                <button 
+                  onClick={() => scrollLeft(category)}
+                  className={`w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${getArrowBgColor(category)} text-[#767676]/50`}
+                >
+                  <ArrowLeft size={20} strokeWidth={1.5} />
+                </button>
+                <button 
+                  onClick={() => scrollRight(category)}
+                  className={`w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${getArrowBgColor(category)} text-[#393F59]`}
+                >
+                  <ArrowRight size={20} strokeWidth={1.5} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Grid/Carousel - Swipeable on mobile, 3 columns on desktop */}
           <div 
@@ -153,9 +183,11 @@ export default function ProductGrid({
           </div>
 
           {/* Section Footer Description */}
-          <p className="text-[#767676] text-[10px] md:text-xs uppercase tracking-[0.15em] max-w-sm leading-relaxed px-4 md:px-0">
-            {getCategoryDescription(category)}
-          </p>
+          {category !== 'featured' && (
+            <p className="text-[#767676] text-[10px] md:text-xs uppercase tracking-[0.15em] max-w-sm leading-relaxed px-4 md:px-0">
+              {getCategoryDescription(category)}
+            </p>
+          )}
         </div>
       ))}
     </div>
