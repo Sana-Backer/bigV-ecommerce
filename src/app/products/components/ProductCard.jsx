@@ -16,7 +16,7 @@ export default function ProductCard({
 }) {
   if (isLoading) {
     return (
-      <div className="flex flex-col flex-shrink-0 snap-center md:snap-none w-[75vw] sm:w-64 md:w-full aspect-[4/5] md:aspect-[3/4] rounded-[16px] bg-[#F0D4D0]/50 p-4 animate-pulse border border-black/[0.04]">
+      <div className="flex flex-col w-full aspect-[4/5] rounded-[16px] bg-[#F0D4D0]/50 p-4 animate-pulse border border-black/[0.04]">
         <div className="flex justify-between items-start">
           <div className="w-24 h-6 bg-white/50 rounded-full" />
           <div className="w-8 h-8 bg-white/50 rounded-full" />
@@ -35,7 +35,7 @@ export default function ProductCard({
   return (
     <Link 
       href={`/products/${product.id || 1}`}
-      className={`group relative flex flex-col flex-shrink-0 snap-center md:snap-none w-[75vw] sm:w-64 md:w-full aspect-[4/5] md:aspect-[3/4] rounded-[16px] ${cardBg} p-4 md:p-5 overflow-hidden transition-all duration-500 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 cursor-pointer border border-black/[0.04]`}
+      className={`group relative flex flex-col w-full aspect-[4/5] rounded-[16px] ${cardBg} p-4 md:p-5 overflow-hidden transition-all duration-500 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:-translate-y-1 cursor-pointer border border-black/[0.04]`}
     >
       
       {/* Top Header - Badge and Icon */}

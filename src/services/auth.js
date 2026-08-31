@@ -21,6 +21,18 @@ export const tokenRefreshApi = async (reqBody) => {
   return await commonAPI("POST", `${api}/auth/token/refresh/`, reqBody);
 };
 
+export const changePasswordApi = async (reqBody) => {
+  return await commonAPI("POST", `${api}/auth/change-password/`, reqBody);
+};
+
+export const forgotPasswordApi = async (reqBody) => {
+  return await commonAPI("POST", `${api}/auth/forgot-password/`, reqBody);
+};
+
+export const resetPasswordApi = async (reqBody) => {
+  return await commonAPI("POST", `${api}/auth/reset-password/`, reqBody);
+};
+
 export const getMeApi = async () => {
   return await commonAPI("GET", `${api}/auth/me/`, "");
 };

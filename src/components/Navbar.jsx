@@ -8,6 +8,7 @@ import ProfileDrawer from "./ProfileDrawer";
 import CartDrawer from "./CartDrawer";
 import NotificationModal from "./NotificationModal";
 import WishlistDrawer from "./WishlistDrawer";
+import SearchDrawer from "./SearchDrawer";
 import { motion, AnimatePresence } from "framer-motion";
 
 const menuVariants = {
@@ -54,6 +55,7 @@ const Navbar = ({ theme = "dark" }) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   useEffect(() => {
@@ -181,7 +183,10 @@ const Navbar = ({ theme = "dark" }) => {
 
             {/* Icons */}
             <div className={`flex items-center gap-5 ${textColorClass} transition-colors duration-500`}>
-              <button className="hover:scale-105 transition-transform">
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="hover:scale-105 transition-transform"
+              >
                 <Search size={18} strokeWidth={1.5} />
               </button>
               <button onClick={() => setIsCartOpen(true)} className="hover:scale-105 transition-transform flex items-center justify-center p-1">
@@ -199,10 +204,7 @@ const Navbar = ({ theme = "dark" }) => {
                 {isDropdownOpen && (
                   <div
                     id="user-dropdown"
-                    className={`absolute right-0 mt-3 w-56 rounded-2xl p-4 shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-2 ${isScrolled || isWhite || theme === "light"
-                      ? "bg-white/95 border-slate-200/60 text-[#353B50]"
-                      : "bg-[#1E293B]/95 border-slate-800 text-white"
-                      }`}
+                    className="absolute right-0 mt-3 w-56 rounded-2xl p-4 shadow-2xl border backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-top-2 bg-white/95 border-slate-200/60 text-[#353B50]"
                   >
                     {user ? (
                       <div className="space-y-0 text-left px-1 py-1">
@@ -264,7 +266,7 @@ const Navbar = ({ theme = "dark" }) => {
                       </div>
                     ) : (
                       <div className="space-y-3 text-left">
-                        <div className={`border-b pb-2 ${isScrolled || isWhite || theme === "light" ? "border-slate-100" : "border-slate-800"}`}>
+                        <div className="border-b pb-2 border-slate-100">
                           <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">
                             Welcome to Lumora
                           </p>
@@ -272,10 +274,7 @@ const Navbar = ({ theme = "dark" }) => {
                         <Link
                           href="/login"
                           onClick={() => setIsDropdownOpen(false)}
-                          className={`block text-center py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-sm ${isScrolled || isWhite || theme === "light"
-                            ? "bg-[#353B50] text-white hover:bg-[#434b66]"
-                            : "bg-white text-slate-900 hover:bg-slate-100"
-                            }`}
+                          className="block text-center py-2.5 px-4 rounded-xl text-xs font-bold transition-all shadow-sm bg-[#353B50] text-white hover:bg-[#434b66]"
                         >
                           Sign In
                         </Link>
@@ -373,6 +372,9 @@ const Navbar = ({ theme = "dark" }) => {
 
       {/* Wishlist Drawer */}
       <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
+      
+      {/* Search Drawer */}
+      <SearchDrawer isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   );
 };

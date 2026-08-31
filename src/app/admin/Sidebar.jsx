@@ -17,7 +17,8 @@ import {
   Image as ImageIcon,
   Settings,
   Sparkles,
-  LogOut
+  LogOut,
+  RefreshCcw
 } from "lucide-react";
 import { logoutApi } from "@/services/auth";
 
@@ -28,16 +29,17 @@ export default function Sidebar({ className = "", onClose }) {
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Reports", href: "/admin/reports", icon: FileText },
     { name: "Analytics", href: "/admin/analytics", icon: LineChart },
+    { name: "Inventory", href: "/admin/inventory", icon: Box },
     { name: "Products", href: "/admin/products", icon: ShoppingBag },
     { name: "Categories", href: "/admin/category", icon: FolderTree },
     { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
+    { name: "Refunds", href: "/admin/refunds", icon: RefreshCcw },
     { name: "Customers", href: "/admin/customers", icon: Users },
-    { name: "Inventory", href: "/admin/inventory", icon: Box },
-    { name: "Reviews", href: "/admin/reviews", icon: MessageSquare },
+    { name: "Staff", href: "/admin/staff", icon: Users },
     { name: "Coupons", href: "/admin/coupons", icon: Ticket },
     { name: "Banners", href: "/admin/banners", icon: ImageIcon },
+    { name: "Reviews", href: "/admin/reviews", icon: MessageSquare },
     { name: "Settings", href: "/admin/settings", icon: Settings },
-    { name: "Staff", href: "/admin/staff", icon: Users },
   ];
 
   // Helper to check if a menu item is active
