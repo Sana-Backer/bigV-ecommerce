@@ -25,7 +25,7 @@ import Footer from "@/components/Footer";
 import { getProductDetailApi, getFeaturedProductsApi } from "@/services/productsApi";
 import { addToCartApi } from "@/services/cartApi";
 import { addToWishlistApi } from "@/services/wishlistApi";
-
+import AuthModal from "@/components/AuthModal";
 gsap.registerPlugin(ScrollTrigger);
 
 // Mock Shades Data
@@ -51,7 +51,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [mobileImageIndex, setMobileImageIndex] = useState(0);
   const [featuredProducts, setFeaturedProducts] = useState([]);
-
+  const [showAuthModal, setShowAuthModal] = useState(false);
   // Refs
   const pageRef = useRef(null);
   const mainImageRef = useRef(null);
@@ -95,6 +95,15 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       }
 
       const res = await addToCartApi(payload);
+
+      // Handle AxiosError returned by commonAPI
+      if (res?.response || res?.isAxiosError) {
+        const errorData = res.response?.data || res.data;
+        const errMsg = errorData?.errors?.detail || errorData?.message || "Failed to add to cart";
+        alert(errMsg);
+        return;
+      }
+
       if (res.status === 201 || res.status === 200) {
         setCartNotification(`Added ${quantity} x ${product?.name || "Product"} (${selectedShade?.name || selectedShade?.attributes?.size || ''}) to your bag!`);
         setTimeout(() => setCartNotification(""), 3500);
@@ -109,20 +118,31 @@ export default function ProductDetailPage({ params: paramsPromise }) {
     }
   };
 
-  // Add to wishlist handler
   const handleAddToWishlist = async () => {
     if (!product) return;
     try {
       const res = await addToWishlistApi({ product_id: product.id });
+      
+      // Handle AxiosError returned by commonAPI
+      if (res?.response?.status === 401 || res?.response?.status === 403) {
+        setShowAuthModal(true);
+        return;
+      }
+      
       if (res.status === 201 || res.status === 200) {
         setCartNotification(`Added ${product?.name || "Product"} to your wishlist!`);
         setTimeout(() => setCartNotification(""), 3500);
       } else {
-        alert("Failed to add to wishlist");
+        const errorData = res?.response?.data || res?.data;
+        if (errorData?.message === "Authentication credentials were not provided.") {
+          setShowAuthModal(true);
+        } else {
+          alert(typeof errorData === 'object' ? JSON.stringify(errorData) : "Failed to add to wishlist");
+        }
       }
     } catch (err) {
       console.error("Error adding to wishlist:", err);
-      alert("Please log in to add items to your wishlist.");
+      setShowAuthModal(true);
     }
   };
 
@@ -373,9 +393,8 @@ export default function ProductDetailPage({ params: paramsPromise }) {
         </div>
       )}
 
-      {/* ========================================================================= */}
       {/* SECTION 1: PRODUCT HERO (SPLIT LAYOUT) */}
-      {/* ========================================================================= */}
+
       <section className="relative z-0 w-full pt-32 lg:pt-30 pb-0 flex items-start overflow-hidden">
         {/* Asymmetric Pink Background - Stops early on Desktop */}
         <div className={`absolute top-0 left-0 w-full h-full lg:h-[calc(100%-8rem)] -z-10 ${selectedShade?.bg || "bg-[#F0D4D0]"} transition-colors duration-700`} />
@@ -416,15 +435,15 @@ export default function ProductDetailPage({ params: paramsPromise }) {
             {/* Main Active Image / Mobile Carousel */}
             <div
               ref={mainImageRef}
-              className="hero-product-img relative flex-1 w-full lg:w-auto max-w-[35rem] aspect-square flex flex-col lg:items-center justify-center select-none transition-all mb-6 lg:mb-0"
+              className="hero-product-img relative flex-1 w-full lg:w-auto lg:max-w-[35rem] h-[350px] lg:h-[500px] flex flex-col lg:items-center justify-center select-none transition-all mb-6 lg:mb-0"
             >
               {/* Desktop Single Image */}
-              <div className="hidden lg:flex w-full h-full items-center justify-center">
+              <div className="hidden lg:flex w-full h-full items-center justify-center bg-white rounded-2xl shadow-sm border border-black/5 p-4">
                 <img
                   src={activeImage || product?.images?.[0]?.image || selectedShade?.image || "/placeholder.png"}
                   alt={product?.name || "Product Hero"}
                   draggable={false}
-                  className="w-full h-full object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.12)]"
+                  className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.08)]"
                 />
               </div>
 
@@ -550,12 +569,15 @@ export default function ProductDetailPage({ params: paramsPromise }) {
               <div className="animate-fade-up mb-8">
                 <p className="text-[11px] tracking-[0.2em] font-bold text-[#2d3150] mb-3 uppercase">SELECT VARIANT</p>
                 <div className="flex items-center gap-3.5">
-                  {product.variants.map((variant, idx) => (
+                  {product.variants.map((variant, idx) => {
+                    const isOutOfStock = variant.in_stock === false || variant.stock_quantity === 0;
+                    return (
                     <div key={variant.id || idx} className="flex flex-col items-center gap-1.5">
                       <button
                         onClick={() => handleShadeChange(variant)}
                         title={variant.attributes?.size || variant.name}
-                        className={`w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 relative flex items-center justify-center
+                        className={`w-12 h-12 rounded-full border-2 transition-all duration-300 relative flex items-center justify-center
+                          ${isOutOfStock ? "" : "hover:scale-110 cursor-pointer"}
                           ${selectedShade?.id === variant.id
                             ? "border-[#2d3150] scale-105 shadow-[0_0_12px_rgba(0,0,0,0.08)]"
                             : "border-transparent"
@@ -568,6 +590,9 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                             alt={variant.attributes?.size || variant.name}
                             className="w-full h-full object-cover"
                           />
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 w-[120%] h-[1.5px] bg-gray-600 m-auto -rotate-45" />
+                          )}
                         </div>
                         {selectedShade?.id === variant.id && (
                           <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#2d3150] text-white rounded-full flex items-center justify-center text-[10px]">
@@ -575,11 +600,11 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                           </span>
                         )}
                       </button>
-                      <span className="text-[10px] font-semibold text-[#2d3150] uppercase tracking-wide">
+                      <span className={`text-[10px] font-semibold uppercase tracking-wide ${isOutOfStock ? "text-gray-400 line-through" : "text-[#2d3150]"}`}>
                         {variant.attributes?.size || variant.name}
                       </span>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             )}
@@ -626,13 +651,27 @@ export default function ProductDetailPage({ params: paramsPromise }) {
               </div>
 
               {/* Main Add Button */}
-              <button
-                onClick={handleAddToCart}
-                className="flex-1 bg-[#C18386] hover:bg-[#b07376] text-white rounded-xl py-4.5 px-6 font-semibold tracking-[0.15em] text-xs flex items-center justify-between shadow-[0_12px_24px_rgba(193,131,134,0.22)] transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 uppercase"
-              >
-                <span>ADD TO CART</span>
-                <ShoppingBag size={15} className="stroke-[2.5]" />
-              </button>
+              {(() => {
+                const isCurrentlyOutOfStock = selectedShade 
+                  ? (selectedShade.in_stock === false || selectedShade.stock_quantity === 0) 
+                  : (product?.in_stock === false || product?.stock_quantity === 0);
+                  
+                return (
+                  <button
+                    onClick={isCurrentlyOutOfStock ? undefined : handleAddToCart}
+                    disabled={isCurrentlyOutOfStock}
+                    className={`flex-1 rounded-xl py-4.5 px-6 font-semibold tracking-[0.15em] text-xs flex items-center ${isCurrentlyOutOfStock ? 'justify-center' : 'justify-between'} transition-all duration-300 uppercase
+                      ${isCurrentlyOutOfStock 
+                        ? "bg-gray-400 cursor-not-allowed text-white opacity-80" 
+                        : "bg-[#C18386] hover:bg-[#b07376] text-white shadow-[0_12px_24px_rgba(193,131,134,0.22)] hover:-translate-y-0.5 active:translate-y-0"
+                      }
+                    `}
+                  >
+                    <span>{isCurrentlyOutOfStock ? "OUT OF STOCK" : "ADD TO CART"}</span>
+                    {!isCurrentlyOutOfStock && <ShoppingBag size={15} className="stroke-[2.5]" />}
+                  </button>
+                );
+              })()}
 
               {/* Wishlist Button */}
 
@@ -1066,6 +1105,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* ========================================================================= */}
       <Footer />
 
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </main>
   );
 }

@@ -128,7 +128,9 @@ export default function ProductsPage() {
         />
       </ProductLayout>
 
-      {/* Premium Footer */}
+      {/* Spacer to create a clean white gap before the footer (matches about-us layout) */}
+      <div className="w-full h-12 md:h-20 bg-[#f1f0ee]  relative z-10"></div>
+
       <Footer />
     </div>
   );

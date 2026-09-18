@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import {
   Geist,
   Geist_Mono,
@@ -58,8 +59,9 @@ export default function RootLayout({ children }) {
         antialiased
       `}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col pb-[72px] md:pb-0">
         {children}
+        <Toaster position="bottom-center" />
       </body>
     </html>
   );

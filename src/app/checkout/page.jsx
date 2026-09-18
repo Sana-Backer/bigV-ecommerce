@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
+import toast from "react-hot-toast";
 import { checkoutQuoteApi, createOrderApi } from "@/services/checkoutApi";
+import { checkServiceabilityApi } from "@/services/shippingApi";
 import { getCartApi } from "@/services/cartApi";
 import { razorpayCreateOrderApi, razorpayVerifyPaymentApi } from "@/services/paymentsApi";
 import Navbar from "@/components/Navbar";
@@ -20,6 +22,10 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState([]);
   const [quote, setQuote] = useState(null);
   const [sameAsShipping, setSameAsShipping] = useState(true);
+
+  const [createdOrderId, setCreatedOrderId] = useState(null);
+  const [createdOrderNumber, setCreatedOrderNumber] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [contactInfo, setContactInfo] = useState({
     email: "",
@@ -88,27 +94,70 @@ export default function CheckoutPage() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setFieldErrors({});
 
     try {
-      const payload = {
-        guest_email: contactInfo.email,
-        guest_phone: contactInfo.phone,
-        shipping_address: shippingAddress,
-        billing_address: sameAsShipping ? shippingAddress : billingAddress,
-        payment_method: paymentMethod, // currently informational on backend unless passed to notes
-        notes: `Payment Method: ${paymentMethod}`
-      };
+      let realOrderId = createdOrderId;
+      let displayOrderId = createdOrderNumber;
 
-      const response = await createOrderApi(payload);
-      
-      if (response && (response.status === 200 || response.status === 201)) {
-        const orderData = response.data?.data || response.data;
-        const displayOrderId = orderData?.order_number || orderData?.id;
-        const realOrderId = orderData?.id;
+      if (!realOrderId) {
+        // 1. Check Serviceability
+        const isCOD = paymentMethod === "COD";
+        const serviceRes = await checkServiceabilityApi(shippingAddress.postal_code, isCOD);
         
-        if (paymentMethod === "RAZORPAY") {
-          // 1. Create Razorpay Order
-          const rzpCreateRes = await razorpayCreateOrderApi({ order_id: realOrderId });
+        const serviceData = serviceRes?.data?.data;
+        if (serviceRes?.status !== 200 || !serviceData || serviceData.status !== 1) {
+          const errorMsg = `Sorry, delivery is not available for pincode ${shippingAddress.postal_code}${isCOD ? " with Cash on Delivery" : ""}.`;
+          setError(errorMsg);
+          toast.error(errorMsg);
+          setFieldErrors({ postal_code: true });
+          setSubmitting(false);
+          return;
+        }
+
+        const payload = {
+          guest_email: contactInfo.email,
+          guest_phone: contactInfo.phone,
+          shipping_address: shippingAddress,
+          billing_address: sameAsShipping ? shippingAddress : billingAddress,
+          payment_method: paymentMethod, // currently informational on backend unless passed to notes
+          notes: `Payment Method: ${paymentMethod}`
+        };
+
+        const response = await createOrderApi(payload);
+        
+        if (response && (response.status === 200 || response.status === 201)) {
+          const orderData = response.data?.data || response.data;
+          displayOrderId = orderData?.order_number || orderData?.id;
+          realOrderId = orderData?.id;
+          
+          setCreatedOrderId(realOrderId);
+          setCreatedOrderNumber(displayOrderId);
+        } else {
+          let errorMsg = "Failed to create order. Please check your details.";
+          const errData = response?.response?.data || response?.data;
+          
+          if (errData) {
+            if (errData.errors && typeof errData.errors === 'object' && Object.keys(errData.errors).length > 0) {
+              const firstKey = Object.keys(errData.errors)[0];
+              errorMsg = errData.errors[firstKey][0] || errData.message || errorMsg;
+              const fieldName = firstKey === 'guest_email' ? 'email' : firstKey;
+              setFieldErrors({ [fieldName]: true });
+            } else if (errData.message) {
+              errorMsg = errData.message;
+            }
+          }
+          
+          setError(errorMsg);
+          toast.error(errorMsg);
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      if (paymentMethod === "RAZORPAY") {
+        // 1. Create Razorpay Order
+        const rzpCreateRes = await razorpayCreateOrderApi({ order_id: realOrderId });
           if (rzpCreateRes && rzpCreateRes.status === 201) {
             const rzpData = rzpCreateRes.data.data || rzpCreateRes.data;
             
@@ -183,10 +232,6 @@ export default function CheckoutPage() {
           }
           router.push(`/order-success/${displayOrderId}`);
         }
-      } else {
-        setError(response?.data?.message || "Failed to create order. Please check your details.");
-        setSubmitting(false);
-      }
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "An unexpected error occurred. Please try again.");
@@ -230,13 +275,13 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-bold text-[#2C332E] mb-4">Contact Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Email *</label>
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.email ? 'text-rose-500' : 'text-[#5A635B]'}`}>Email *</label>
                     <input 
                       type="email" 
                       required
                       value={contactInfo.email}
                       onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
-                      className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.email ? 'border-rose-500 text-rose-500 focus:border-rose-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`}
                     />
                   </div>
                   <div>
@@ -276,8 +321,15 @@ export default function CheckoutPage() {
                     <input type="text" name="state" required value={shippingAddress.state} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Postal Code *</label>
-                    <input type="text" name="postal_code" required value={shippingAddress.postal_code} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.postal_code ? 'text-rose-500' : 'text-[#5A635B]'}`}>Postal Code *</label>
+                    <input 
+                      type="text" 
+                      name="postal_code" 
+                      required 
+                      value={shippingAddress.postal_code} 
+                      onChange={handleShippingChange} 
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.postal_code ? 'border-rose-500 text-rose-500 focus:border-rose-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} 
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Country *</label>
@@ -432,10 +484,10 @@ export default function CheckoutPage() {
               <button 
                 type="submit"
                 form="checkout-form"
-                disabled={submitting || cartItems.length === 0}
+                disabled={submitting || (cartItems.length === 0 && !createdOrderId)}
                 className="w-full mt-6 py-4 bg-[#2C332E] text-white text-sm font-bold rounded-xl hover:bg-[#3E4741] transition-all flex items-center justify-center gap-2 uppercase tracking-widest disabled:opacity-70"
               >
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : "Confirm Order"}
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : createdOrderId ? "Retry Payment" : "Confirm Order"}
               </button>
               
               <p className="text-[10px] text-center text-[#7B827C] mt-3">

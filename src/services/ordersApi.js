@@ -59,3 +59,9 @@ export const cancelMyOrderApi = async (id, cancelData = {}) => {
   const headers = await getAuthHeaders();
   return await commonAPI("POST", `${api}/orders/${id}/cancel/`, cancelData, headers);
 };
+
+// Fetch customer order tracking
+export const getMyOrderTrackingApi = async (id) => {
+  const headers = await getAuthHeaders();
+  return await commonAPI("GET", `${api}/orders/${id}/tracking/`, "", headers);
+};

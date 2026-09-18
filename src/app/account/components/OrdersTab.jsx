@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { getMyOrdersApi, getMyOrderDetailApi, cancelMyOrderApi } from "@/services/ordersApi";
+import { getMyOrdersApi, getMyOrderDetailApi, cancelMyOrderApi, getMyOrderTrackingApi } from "@/services/ordersApi";
 import { Loader2, Package, ChevronRight, X, Calendar, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
@@ -15,6 +15,9 @@ export default function OrdersTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [trackingData, setTrackingData] = useState(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [trackingError, setTrackingError] = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -51,6 +54,8 @@ export default function OrdersTab() {
     setModalLoading(true);
     setIsModalOpen(true);
     setCancelError("");
+    setTrackingData(null);
+    setTrackingError("");
     try {
       const res = await getMyOrderDetailApi(orderId);
       if (res && res.status === 200) {
@@ -149,6 +154,25 @@ export default function OrdersTab() {
       setCancelError(err?.response?.data?.message || "Failed to cancel the order.");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleTrackOrder = async () => {
+    if (!selectedOrder || !selectedOrder.realId) return;
+    setTrackingLoading(true);
+    setTrackingError("");
+    try {
+      const res = await getMyOrderTrackingApi(selectedOrder.realId);
+      if (res && res.status === 200) {
+        setTrackingData(res.data?.data || res.data);
+      } else {
+        setTrackingError(res?.data?.message || "Tracking not available yet.");
+      }
+    } catch (err) {
+      console.error("Tracking error:", err);
+      setTrackingError(err?.response?.data?.message || "Tracking not available yet.");
+    } finally {
+      setTrackingLoading(false);
     }
   };
 
@@ -395,6 +419,61 @@ export default function OrdersTab() {
                           ))}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Shiprocket Live Tracking */}
+                  {selectedOrder.status !== 'Cancelled' && (
+                    <div className="space-y-3 mt-6">
+                      <div className="border-b border-slate-100 pb-2 flex justify-between items-center">
+                        <h3 className="text-sm font-semibold text-slate-700">Live Delivery Tracking</h3>
+                        {!trackingData && (
+                          <button 
+                            onClick={handleTrackOrder} 
+                            disabled={trackingLoading}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
+                          >
+                            {trackingLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Track via Shiprocket
+                          </button>
+                        )}
+                      </div>
+                      
+                      {trackingError && (
+                        <div className="bg-rose-50 text-rose-600 text-xs px-4 py-3 rounded-xl border border-rose-100">
+                          {trackingError}
+                        </div>
+                      )}
+
+                      {trackingData && (
+                        <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-4 shadow-sm">
+                          <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                            <div>
+                              <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Courier</p>
+                              <p className="text-sm font-bold text-slate-800">{trackingData.courier_name || "Assigned soon"}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">AWB / Tracking #</p>
+                              <p className="text-sm font-bold text-slate-800">{trackingData.awb_code || "Pending"}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-blue-50 text-blue-700 px-4 py-3 rounded-lg border border-blue-100">
+                            <Package className="w-5 h-5 shrink-0 hidden sm:block" />
+                            <div className="flex-1">
+                              <p className="text-sm font-bold capitalize">{trackingData.status || "Pending"}</p>
+                              {trackingData.delivered_at && (
+                                <p className="text-xs text-blue-600 mt-0.5 font-medium">Delivered on {new Date(trackingData.delivered_at).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                            {trackingData.tracking_url && (
+                              <a href={trackingData.tracking_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold bg-white px-3 py-2 sm:py-1.5 rounded-md shadow-sm hover:shadow transition-all text-blue-700 text-center w-full sm:w-auto">
+                                View Full Tracking
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
