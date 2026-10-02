@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Trash2, ShoppingBag, Loader2, Minus, Plus } from "lucide-react";
+import { X, Trash2, ShoppingBag, Loader2, Minus, Plus, CheckCircle, ChevronUp, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getCartApi, updateCartItemApi, removeCartItemApi, getCartSummaryApi, clearCartApi } from "@/services/cartApi";
 import { applyCouponApi, removeCouponApi } from "@/services/couponApi";
@@ -203,7 +203,7 @@ export default function CartDrawer({ isOpen, onClose }) {
             className="fixed top-0 right-0 h-full w-full max-w-md bg-[#FCFAF7] shadow-2xl z-[100] flex flex-col font-sans border-l border-[#E6E4DD]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[#E6E4DD] bg-white">
+            <div className="flex items-center justify-between p-4 border-b border-[#E6E4DD] bg-white">
               <div className="flex items-center gap-3">
                 <ShoppingBag size={20} className="text-[#2C332E]" />
                 <h2 className="text-xl font-normal text-[#2C332E] font-serif">
@@ -227,7 +227,7 @@ export default function CartDrawer({ isOpen, onClose }) {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 relative">
+            <div className="flex-1 overflow-y-auto p-2 relative">
               {loading && !cart ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#FCFAF7]/50 z-10">
                   <Loader2 className="h-6 w-6 animate-spin text-[#2C332E]" />
@@ -253,7 +253,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-3">
                   {cartItems.map((item) => (
                     <div key={item.id} className={`flex gap-4 p-4 bg-white rounded-xl border border-[#E6E4DD] shadow-sm relative ${updatingItemId === item.id ? 'opacity-50' : ''}`}>
                       <div className="w-20 h-20 shrink-0 bg-[#F5F4F0] rounded-lg overflow-hidden border border-[#E6E4DD]/50">
@@ -329,63 +329,64 @@ export default function CartDrawer({ isOpen, onClose }) {
 
             {/* Footer / Checkout */}
             {cartItems.length > 0 && (
-              <div className="p-6 border-t border-[#E6E4DD] bg-white space-y-4 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] relative z-10">
-                {/* Coupon Section */}
-                <div className="space-y-2 pb-2">
-                  {cart?.coupon_code ? (
-                    <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <span className="text-emerald-700 font-bold text-xs uppercase tracking-wider">{cart.coupon_code}</span>
-                        <span className="text-emerald-600 text-[10px]">Applied!</span>
-                      </div>
-                      <button
-                        onClick={handleRemoveCoupon}
-                        disabled={couponLoading}
-                        className="text-emerald-600 hover:text-emerald-800 disabled:opacity-50"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={couponCodeInput}
-                        onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
-                        placeholder="Coupon code"
-                        className="flex-1 px-3 py-2 text-sm border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] uppercase placeholder:normal-case"
-                      />
-                      <button
-                        onClick={handleApplyCoupon}
-                        disabled={couponLoading || !couponCodeInput.trim()}
-                        className="px-4 py-2 bg-[#F5F4F0] text-[#2C332E] text-xs font-bold rounded-lg hover:bg-[#E6E4DD] disabled:opacity-50 transition-colors"
-                      >
-                        {couponLoading ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
-                      </button>
+              <div className="p-4 border-t border-[#E6E4DD] bg-white shadow-[0_-10px_30px_rgba(0,0,0,0.03)] relative z-10 flex flex-col gap-4">
+                
+                {/* Coupon Ticket */}
+                <div className="border border-[#E6E4DD] rounded-xl relative bg-white shadow-sm overflow-hidden flex flex-col">
+                  {summary && parseFloat(summary.discount) > 0 && (
+                    <div className="bg-[#6de2ac] text-center py-1.5 text-xs font-bold text-[#065f46]">
+                      🎉 You're saving ₹{summary.discount} 🎉!
                     </div>
                   )}
-                  {couponError && <p className="text-rose-500 text-[10px]">{couponError}</p>}
-                </div>
-
-                <div className="flex items-center justify-between text-[#5A635B] font-medium text-sm">
-                  <span>Subtotal</span>
-                  <span className="text-[#2C332E] font-bold text-base">₹{summary?.subtotal || "0.00"}</span>
-                </div>
-                {summary && parseFloat(summary.discount) > 0 && (
-                  <div className="flex items-center justify-between text-emerald-600 font-medium text-sm">
-                    <span>Discount</span>
-                    <span className="font-bold text-base">-₹{summary.discount}</span>
+                  
+                  <div className="p-3">
+                    {cart?.coupon_code ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle size={16} className="text-[#065f46]" strokeWidth={2.5} />
+                          <span className="text-[#065f46] font-bold text-sm">Save ₹{summary?.discount || "0.00"}</span>
+                          <span className="bg-[#e6fbf1] text-[#065f46] px-2 py-0.5 rounded text-xs font-bold uppercase border border-[#a7f3d0]">{cart.coupon_code}</span>
+                        </div>
+                        <button onClick={handleRemoveCoupon} disabled={couponLoading} className="px-3 py-1 border border-[#E6E4DD] rounded-md text-xs font-semibold hover:bg-gray-50 text-[#2C332E]">
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <input
+                          type="text"
+                          value={couponCodeInput}
+                          onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                          placeholder="Enter a coupon"
+                          className="flex-1 px-2 py-1 text-sm outline-none border-none focus:ring-0 uppercase placeholder:normal-case placeholder:text-gray-400 font-medium text-[#2C332E]"
+                        />
+                        <button
+                          onClick={handleApplyCoupon}
+                          disabled={couponLoading || !couponCodeInput.trim()}
+                          className="px-4 py-1.5 border border-[#E6E4DD] rounded-md text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 text-[#2C332E]"
+                        >
+                          {couponLoading ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                        </button>
+                      </div>
+                    )}
+                    {couponError && <p className="text-rose-500 text-[10px] mt-1 px-2">{couponError}</p>}
                   </div>
-                )}
-                <div className="flex items-center justify-between text-[#2C332E] font-bold text-lg border-t border-[#E6E4DD] pt-3 mt-3">
-                  <span>Total</span>
-                  <span>₹{summary?.grand_total || "0.00"}</span>
+                  
+                  {!cart?.coupon_code && (
+                    <div className="border-t border-dashed border-[#E6E4DD] p-2.5 px-3 flex justify-between items-center relative">
+                        {/* Ticket cutouts */}
+                        <div className="absolute -left-[9px] -top-[9px] w-[18px] h-[18px] rounded-full bg-white border border-[#E6E4DD]"></div>
+                        <div className="absolute -right-[9px] -top-[9px] w-[18px] h-[18px] rounded-full bg-white border border-[#E6E4DD]"></div>
+
+                        <span className="text-xs text-[#2C332E]/60 font-medium"></span>
+                        <span className="text-[11px] text-[#2C332E]/60 hover:text-[#2C332E] cursor-pointer flex items-center gap-1 font-semibold">+11 offer(s) available <ChevronRight size={12}/></span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-[10px] text-[#7B827C] text-center mb-2 mt-4">Shipping & taxes calculated at checkout</p>
 
                 {/* Validation Errors */}
                 {validationErrors.length > 0 && (
-                  <div className="bg-rose-50 border border-rose-100 p-3 rounded-lg mt-3">
+                  <div className="bg-rose-50 border border-rose-100 p-3 rounded-lg">
                     <p className="text-xs font-bold text-rose-700 mb-1">Please fix the following issues:</p>
                     <ul className="list-disc list-inside text-[11px] text-rose-600 space-y-1">
                       {validationErrors.map((err, idx) => (
@@ -395,13 +396,24 @@ export default function CartDrawer({ isOpen, onClose }) {
                   </div>
                 )}
 
-                <button
-                  onClick={handleProceedToCheckout}
-                  disabled={validating}
-                  className="w-full py-4 text-xs font-bold text-white bg-[#2C332E] rounded-xl hover:bg-[#3E4741] transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] uppercase tracking-widest shadow-md disabled:opacity-70"
-                >
-                  {validating ? <Loader2 size={16} className="animate-spin" /> : "Proceed to Checkout"}
-                </button>
+                {/* Total & Checkout */}
+                <div className="flex items-end justify-between pt-1">
+                    <div className="flex flex-col cursor-pointer group">
+                        <span className="text-[12px] text-[#2C332E]/80 font-medium flex items-center gap-1">
+                            Estimated Total <ChevronUp size={14} className="text-[#2C332E]/50 group-hover:text-[#2C332E] transition-colors" />
+                        </span>
+                        <span className="text-[#2C332E] font-bold text-[22px] leading-tight">₹{summary?.grand_total || "0.00"}</span>
+                    </div>
+                    
+                    <button
+                      onClick={handleProceedToCheckout}
+                      disabled={validating}
+                      className="px-8 py-3.5 text-[13px] font-bold text-white bg-[#2C332E] rounded-full hover:bg-[#3E4741] transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70 shadow-[0_4px_14px_0_rgba(0,0,0,0.1)]"
+                    >
+                      {validating ? <Loader2 size={16} className="animate-spin" /> : "PROCEED TO CHECKOUT"}
+                    </button>
+                </div>
+
               </div>
             )}
           </motion.div>

@@ -33,6 +33,7 @@ import {
   updateOrderFulfillmentStatusApi,
   cancelAdminOrderApi
 } from "@/services/ordersApi";
+import { razorpayRefundApi } from "@/services/paymentsApi";
 
 export default function OrderManagement() {
   const [activeTab, setActiveTab] = useState("All Orders");
@@ -227,6 +228,31 @@ export default function OrderManagement() {
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || "Failed to cancel order.");
+    }
+  };
+
+  // Refund Order Handler
+  const handleRefundOrder = async (orderId) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.realId) return;
+    
+    if (!window.confirm("Are you sure you want to process a full refund for this order?")) return;
+
+    try {
+      const response = await razorpayRefundApi({ 
+        order_id: order.realId, 
+        reason: "Refunded by admin" 
+      });
+      if (response && (response.status === 200 || response.status === 201)) {
+        alert("Refund processed successfully!");
+        // Automatically update the local status to refunded to reflect the change
+        handlePaymentChange(orderId, "refunded");
+      } else {
+        alert(response?.data?.message || response?.data?.error || "Failed to process refund.");
+      }
+    } catch (err) {
+      console.error("Refund error:", err);
+      alert(err.response?.data?.message || err.response?.data?.error || "Failed to process refund.");
     }
   };
 
@@ -956,13 +982,22 @@ export default function OrderManagement() {
             </div>
 
             <div className="p-4 border-t border-slate-100 bg-slate-50/50 shrink-0 flex justify-between gap-3">
-              <button
-                onClick={() => handleCancelOrder(selectedOrder.id)}
-                className="px-5 py-2.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={selectedOrder.status === "Cancelled" || selectedOrder.isCancellable === false}
-              >
-                Cancel Order
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleCancelOrder(selectedOrder.id)}
+                  className="px-5 py-2.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={selectedOrder.status === "Cancelled" || selectedOrder.isCancellable === false}
+                >
+                  Cancel Order
+                </button>
+                <button
+                  onClick={() => handleRefundOrder(selectedOrder.id)}
+                  className="px-5 py-2.5 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-xl hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!["paid", "partially_refunded"].includes(selectedOrder.payment?.toLowerCase())}
+                >
+                  Process Refund
+                </button>
+              </div>
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="px-5 py-2.5 text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"

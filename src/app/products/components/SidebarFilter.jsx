@@ -25,7 +25,7 @@ export default function SidebarFilter({
       <div className="space-y-4">
         {/* Categories Section */}
         <div className="border-b border-[#e5e7eb] pb-4">
-          <div 
+          <div
             className="flex justify-between items-center mb-1 cursor-pointer group"
             onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
           >
@@ -37,7 +37,7 @@ export default function SidebarFilter({
               <ChevronDown size={16} className="text-[#767676] group-hover:text-[#393F59] transition-colors" strokeWidth={1.5} />
             </motion.div>
           </div>
-          
+
           <AnimatePresence>
             {isCategoriesOpen && (
               <motion.div
@@ -49,8 +49,8 @@ export default function SidebarFilter({
               >
                 <div className="flex flex-col gap-3 pt-3">
                   {categories.map((cat, idx) => (
-                    <div 
-                      key={idx} 
+                    <div
+                      key={idx}
                       className="flex items-center justify-between cursor-pointer group"
                       onClick={() => {
                         if (setSelectedCategory) {
@@ -59,16 +59,15 @@ export default function SidebarFilter({
                       }}
                     >
                       {/* Custom Checkbox */}
-                      <div 
-                        className={`w-[14px] h-[14px] flex-shrink-0 rounded-[3px] border flex items-center justify-center transition-colors duration-200 ${
-                          selectedCategory === cat 
-                            ? 'bg-[#393F59] border-[#393F59]' 
+                      <div
+                        className={`w-[14px] h-[14px] flex-shrink-0 rounded-[3px] border flex items-center justify-center transition-colors duration-200 ${selectedCategory === cat
+                            ? 'bg-[#393F59] border-[#393F59]'
                             : 'bg-transparent border-[#767676]/40'
-                        }`}
+                          }`}
                       >
                         {selectedCategory === cat && (
                           <svg width="8" height="6" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         )}
                       </div>

@@ -21,6 +21,10 @@ export const getProductsByCategoryApi = async (slug) => {
     return await commonAPI("GET", `${api}/products/by-category/${slug}/`, "");
 };
 
+export const searchProductsApi = async (searchQuery) => {
+    return await commonAPI("GET", `${api}/products/search/?search=${encodeURIComponent(searchQuery)}`, "");
+};
+
 export const updateProductApi = async (id, reqBody) => {
     return await commonAPI("PUT", `${api}/products/${id}/`, reqBody);
 };

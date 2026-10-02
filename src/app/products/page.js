@@ -10,6 +10,9 @@ import Navbar from "@/components/Navbar";
 import { getProductsApi, getProductsByCategoryApi, getFeaturedProductsApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
 
+import { toast } from "react-hot-toast";
+import { CheckCircle2, X } from "lucide-react";
+
 export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState([]);
@@ -95,7 +98,37 @@ export default function ProductsPage() {
 
   // Cart placeholder handler
   const handleAddToCart = (product) => {
-    alert(`Added ${product.name} to bag!`);
+    toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? 'animate-enter' : 'animate-leave'
+        } max-w-sm w-full bg-[#2d3150] shadow-2xl rounded-xl pointer-events-auto flex ring-1 ring-black/10 overflow-hidden`}
+      >
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <CheckCircle2 className="h-10 w-10 text-[#c0a888]" strokeWidth={1.5} />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-semibold text-white uppercase tracking-wider">
+                Added to Bag
+              </p>
+              <p className="mt-1 text-sm text-gray-300">
+                {product.name}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex border-l border-white/10">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="w-full border border-transparent rounded-none rounded-r-xl p-4 flex items-center justify-center text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors focus:outline-none"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    ), { duration: 3000 });
   };
 
   return (
@@ -128,7 +161,9 @@ export default function ProductsPage() {
         />
       </ProductLayout>
 
-      {/* Premium Footer */}
+      {/* Spacer to create a clean white gap before the footer (matches about-us layout) */}
+      <div className="w-full h-12 md:h-20 bg-[#f1f0ee]  relative z-10"></div>
+
       <Footer />
     </div>
   );

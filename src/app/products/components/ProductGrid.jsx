@@ -45,21 +45,8 @@ export default function ProductGrid({
 }) {
   const scrollRefs = useRef({});
 
-  const scrollLeft = (category) => {
-    const container = scrollRefs.current[category];
-    if (container && container.firstElementChild) {
-      const cardWidth = container.firstElementChild.offsetWidth;
-      container.scrollBy({ left: -(cardWidth + 26), behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = (category) => {
-    const container = scrollRefs.current[category];
-    if (container && container.firstElementChild) {
-      const cardWidth = container.firstElementChild.offsetWidth;
-      container.scrollBy({ left: cardWidth + 26, behavior: 'smooth' });
-    }
-  };
+  const scrollLeft = (category) => {};
+  const scrollRight = (category) => {};
 
   if (isLoading) {
     return (
@@ -125,20 +112,6 @@ export default function ProductGrid({
               <h2 className="text-[#2d3150] font-yellowtail text-5xl md:text-[4rem] leading-none text-center">
                 featured
               </h2>
-              <div className="absolute right-4 md:right-0 flex gap-[16px]">
-                <button 
-                  onClick={() => scrollLeft(category)}
-                  className="w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer bg-[#EAE8E4] hover:bg-[#dcd9d3] text-[#767676]/50 hover:text-[#393F59]"
-                >
-                  <ArrowLeft size={20} strokeWidth={1.5} />
-                </button>
-                <button 
-                  onClick={() => scrollRight(category)}
-                  className="w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer bg-[#EAE8E4] hover:bg-[#dcd9d3] text-[#393F59]"
-                >
-                  <ArrowRight size={20} strokeWidth={1.5} />
-                </button>
-              </div>
             </div>
           ) : (
             <div className="flex flex-col md:flex-row md:justify-between items-start md:items-end px-4 md:px-0 gap-6 md:gap-0">
@@ -150,28 +123,12 @@ export default function ProductGrid({
                   Products
                 </p>
               </div>
-              {/* Arrows */}
-              <div className="flex gap-[16px] mb-2">
-                <button 
-                  onClick={() => scrollLeft(category)}
-                  className={`w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${getArrowBgColor(category)} text-[#767676]/50`}
-                >
-                  <ArrowLeft size={20} strokeWidth={1.5} />
-                </button>
-                <button 
-                  onClick={() => scrollRight(category)}
-                  className={`w-[48px] h-[48px] rounded-full flex items-center justify-center transition-colors cursor-pointer ${getArrowBgColor(category)} text-[#393F59]`}
-                >
-                  <ArrowRight size={20} strokeWidth={1.5} />
-                </button>
-              </div>
             </div>
           )}
 
-          {/* Grid/Carousel - Swipeable on mobile, 3 columns on desktop */}
+          {/* Grid Layout */}
           <div 
-            ref={(el) => scrollRefs.current[category] = el}
-            className="flex w-full max-w-full overflow-x-auto md:grid md:overflow-x-visible snap-x snap-mandatory md:snap-none md:grid-cols-3 gap-[26px] pb-4 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 w-full"
           >
             {groupedProducts[category].map((product) => (
               <ProductCard

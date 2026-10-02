@@ -246,7 +246,7 @@ const PicksForYou = () => {
   "
         >
           <Image
-            src="/pick1.png"
+            src="/home/highlight1.png"
             alt="Skincare cleanser pick"
             fill
             priority
@@ -271,7 +271,7 @@ w-[62vw] sm:w-[38vw] md:w-[22rem] lg:w-[28rem]
           "
         >
           <Image
-            src="/pick2.png"
+            src="/home/highlight2.png"
             alt="Foam cleanser pick"
             fill
             priority
@@ -295,14 +295,14 @@ w-[62vw] sm:w-[38vw] md:w-[22rem] lg:w-[28rem]    overflow-hidden
           "
         >
           <Image
-            src="/pick3.png"
+            src="/home/highlight3.png"
             alt="Sunscreen pick"
             fill
             sizes="(max-width: 767px) 56vw, 448px"
             className="object-cover"
           />
         </div>
-        <div
+        {/* <div
           className="
             pick-card
             card-4
@@ -323,7 +323,7 @@ w-[62vw] sm:w-[38vw] md:w-[22rem] lg:w-[28rem]    overflow-hidden
             sizes="(max-width: 767px) 56vw, 448px"
             className="object-cover"
           />
-        </div>
+        </div> */}
       </div>
     </section>
   );

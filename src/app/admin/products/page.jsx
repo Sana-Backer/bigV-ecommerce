@@ -17,7 +17,7 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
-import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi, getProductVariantsApi, deleteProductVariantApi, deleteProductImageApi } from "@/services/productsApi";
+import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi, getProductVariantsApi, deleteProductVariantApi, deleteProductImageApi, deleteProductApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
 import ManageVariantsSection from "@/components/ManageVariantsSection";
 
@@ -49,6 +49,14 @@ export default function AdminProducts() {
     stock: "0",
     category: "",
     isActive: true,
+    about_title: "",
+    about_heading: "",
+    recommended_for: "",
+    good_to_know: "",
+    ingredients_title: "",
+    ingredients: "",
+    usage: "",
+    faqs: [],
   });
 
   const [images, setImages] = useState({
@@ -126,7 +134,7 @@ export default function AdminProducts() {
             id: product.id,
             name: product.name,
             price: `₹${product.base_price}`,
-            image: product.primary_image || "/product1.png",
+            image: product.primary_image || "",
             category: product.category ? product.category.name : "",
             stock: stock,
             status: stock > 0 ? "In Stock" : "Out of Stock",
@@ -169,6 +177,24 @@ export default function AdminProducts() {
     setProductVariants(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
 
+  const addFaqField = () => {
+    setFormData(prev => ({ ...prev, faqs: [...(Array.isArray(prev.faqs) ? prev.faqs : []), { question: "", answer: "" }] }));
+  };
+
+  const removeFaqField = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      faqs: prev.faqs.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleFaqFieldChange = (index, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      faqs: prev.faqs.map((item, i) => i === index ? { ...item, [field]: value } : item)
+    }));
+  };
+
   const handleImageChange = (key, file) => {
     if (file) {
       const url = URL.createObjectURL(file);
@@ -205,6 +231,14 @@ export default function AdminProducts() {
       stock: "0",
       category: categoriesList[0]?.id || "",
       isActive: true,
+      about_title: "",
+      about_heading: "",
+      recommended_for: "",
+      good_to_know: "",
+      ingredients_title: "",
+      ingredients: "",
+      usage: "",
+      faqs: [],
     });
     setImages({
       main: null,
@@ -246,6 +280,14 @@ export default function AdminProducts() {
           stock: stockQty,
           category: prodDetail.category ? prodDetail.category.id : "",
           isActive: prodDetail.is_active,
+          about_title: prodDetail.about_title || "",
+          about_heading: prodDetail.about_heading || "",
+          recommended_for: Array.isArray(prodDetail.recommended_for) ? prodDetail.recommended_for.join(", ") : "",
+          good_to_know: Array.isArray(prodDetail.good_to_know) ? prodDetail.good_to_know.join(", ") : "",
+          ingredients_title: prodDetail.ingredients_title || "",
+          ingredients: prodDetail.ingredients || "",
+          usage: prodDetail.usage || "",
+          faqs: Array.isArray(prodDetail.faqs) ? prodDetail.faqs : [],
         });
 
         const newImages = {
@@ -311,6 +353,27 @@ export default function AdminProducts() {
     }
   };
 
+  const handleDelete = async (productId) => {
+    if (!window.confirm("Are you sure you want to delete this product?")) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const response = await deleteProductApi(productId);
+      if (response && (response.status === 200 || response.status === 204)) {
+        alert("Product deleted successfully!");
+        fetchProducts();
+      } else {
+        alert("Failed to delete product.");
+      }
+    } catch (err) {
+      console.error("Failed to delete product:", err);
+      alert("Error deleting product.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const showProductDetails = async (productId) => {
     setIsLoading(true);
     try {
@@ -351,7 +414,15 @@ export default function AdminProducts() {
       base_price: basePrice.toFixed(2),
       sale_price: null,
       is_featured: false,
-      is_active: formData.isActive
+      is_active: formData.isActive,
+      about_title: formData.about_title,
+      about_heading: formData.about_heading,
+      recommended_for: formData.recommended_for ? formData.recommended_for.split(",").map(i => i.trim()).filter(i => i) : [],
+      good_to_know: formData.good_to_know ? formData.good_to_know.split(",").map(i => i.trim()).filter(i => i) : [],
+      ingredients_title: formData.ingredients_title,
+      ingredients: formData.ingredients,
+      usage: formData.usage,
+      faqs: Array.isArray(formData.faqs) ? formData.faqs.filter(f => f.question.trim() || f.answer.trim()) : []
     };
 
     try {
@@ -598,6 +669,150 @@ export default function AdminProducts() {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Base Price</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter base price"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Detailed Content */}
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs space-y-4">
+              <h2 className="text-lg font-bold text-slate-800 border-b border-slate-50 pb-2">
+                Product Content & Details
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">About Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., ABOUT THE PRODUCT"
+                    value={formData.about_title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, about_title: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">About Heading</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., A boost of anti-oxidant rich..."
+                    value={formData.about_heading}
+                    onChange={(e) => setFormData(prev => ({ ...prev, about_heading: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Recommended For (Comma Separated)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Dull Skin, Uneven Skin Tone"
+                    value={formData.recommended_for}
+                    onChange={(e) => setFormData(prev => ({ ...prev, recommended_for: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Good to Know (Comma Separated)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Vegan, Cruelty-Free"
+                    value={formData.good_to_know}
+                    onChange={(e) => setFormData(prev => ({ ...prev, good_to_know: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Ingredients Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., INGREDIENTS"
+                    value={formData.ingredients_title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ingredients_title: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Ingredients</label>
+                <textarea
+                  rows={2}
+                  placeholder="Ingredients list..."
+                  value={formData.ingredients}
+                  onChange={(e) => setFormData(prev => ({ ...prev, ingredients: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium resize-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Usage Instructions</label>
+                <textarea
+                  rows={2}
+                  placeholder="How to use..."
+                  value={formData.usage}
+                  onChange={(e) => setFormData(prev => ({ ...prev, usage: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium resize-none"
+                />
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                  <h2 className="text-sm font-bold text-slate-700">
+                    FAQs
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={addFaqField}
+                    className="flex items-center gap-1.5 text-xs font-bold text-[#553C9A] hover:text-[#432F7A] transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add FAQ
+                  </button>
+                </div>
+
+                {Array.isArray(formData.faqs) && formData.faqs.length > 0 && (
+                  <div className="space-y-3">
+                    {formData.faqs.map((faq, index) => (
+                      <div key={index} className="flex flex-col gap-2 bg-slate-50/50 p-3 rounded-2xl border border-slate-100 relative group animate-in slide-in-from-top-2 duration-200">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500">Question</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Is this vegan?"
+                            value={faq.question}
+                            onChange={(e) => handleFaqFieldChange(index, "question", e.target.value)}
+                            className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500">Answer</label>
+                          <textarea
+                            rows={2}
+                            placeholder="e.g., Yes, it is 100% vegan."
+                            value={faq.answer}
+                            onChange={(e) => handleFaqFieldChange(index, "answer", e.target.value)}
+                            className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A] resize-none"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFaqField(index)}
+                          className="absolute top-2 right-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -963,6 +1178,7 @@ export default function AdminProducts() {
                         </button>
                         {/* Delete button */}
                         <button
+                          onClick={() => handleDelete(product.id)}
                           className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
                           title="Delete Product"
                         >
@@ -1164,3 +1380,4 @@ export default function AdminProducts() {
     </div>
   );
 }
+
