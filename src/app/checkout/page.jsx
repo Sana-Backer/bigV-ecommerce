@@ -106,7 +106,7 @@ export default function CheckoutPage() {
         const serviceRes = await checkServiceabilityApi(shippingAddress.postal_code, isCOD);
         
         const serviceData = serviceRes?.data?.data;
-        if (serviceRes?.status !== 200 || !serviceData || serviceData.status !== 1) {
+        if (serviceRes?.status !== 200 || !serviceData || serviceData.status !== 200) {
           const errorMsg = `Sorry, delivery is not available for pincode ${shippingAddress.postal_code}${isCOD ? " with Cash on Delivery" : ""}.`;
           setError(errorMsg);
           toast.error(errorMsg);

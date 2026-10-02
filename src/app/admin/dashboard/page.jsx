@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getDashboardOverviewApi, getSalesAnalyticsApi, getTopSellingProductsApi, getTopCategoriesApi, getRevenueOverviewApi, getRecentOrdersApi } from "../../../services/dashboardApi";
 import { 
   TrendingUp, 
   ShoppingBag, 
@@ -13,13 +14,75 @@ import {
 
 export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("Last 30 Days");
+  const [overviewData, setOverviewData] = useState(null);
+  const [salesData, setSalesData] = useState(null);
+  const [topSellingProductsData, setTopSellingProductsData] = useState(null);
+  const [topCategoriesData, setTopCategoriesData] = useState(null);
+  const [revenueOverviewData, setRevenueOverviewData] = useState(null);
+  const [recentOrdersData, setRecentOrdersData] = useState(null);
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchDashboardOverview = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? sessionStorage.getItem("token") : null;
+        const reqHeader = token ? { Authorization: `Token ${token}` } : {};
+        const rangeMap = {
+          "Last 7 Days": "7d",
+          "Last 30 Days": "30d",
+          "Last 90 Days": "90d",
+          "Last 1 Year": "1y"
+        };
+        const range = rangeMap[selectedPeriod] || "30d";
+        const response = await getDashboardOverviewApi(reqHeader, range);
+        if (response.status === 200) {
+          console.log("Dashboard Overview Data:", response.data);
+          setOverviewData(response.data.data || response.data);
+        }
+
+        const salesResponse = await getSalesAnalyticsApi(reqHeader);
+        if (salesResponse.status === 200) {
+          console.log("Sales Analytics Data:", salesResponse.data);
+          setSalesData(salesResponse.data.data || salesResponse.data);
+        }
+
+        const topSellingResponse = await getTopSellingProductsApi(reqHeader);
+        if (topSellingResponse.status === 200) {
+          console.log("Top Selling Products Data:", topSellingResponse.data);
+          setTopSellingProductsData(topSellingResponse.data.data || topSellingResponse.data);
+        }
+
+        const topCategoriesResponse = await getTopCategoriesApi(reqHeader);
+        if (topCategoriesResponse.status === 200) {
+          console.log("Top Categories Data:", topCategoriesResponse.data);
+          setTopCategoriesData(topCategoriesResponse.data.data || topCategoriesResponse.data);
+        }
+
+        const revenueOverviewResponse = await getRevenueOverviewApi(reqHeader);
+        if (revenueOverviewResponse.status === 200) {
+          console.log("Revenue Overview Data:", revenueOverviewResponse.data);
+          setRevenueOverviewData(revenueOverviewResponse.data.data || revenueOverviewResponse.data);
+        }
+
+        const recentOrdersResponse = await getRecentOrdersApi(reqHeader);
+        if (recentOrdersResponse.status === 200) {
+          console.log("Recent Orders Data:", recentOrdersResponse.data);
+          setRecentOrdersData(recentOrdersResponse.data.data || recentOrdersResponse.data);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      }
+    };
+
+    fetchDashboardOverview();
+  }, [selectedPeriod]);
 
   const stats = [
     {
       name: "TOTAL REVENUE",
-      value: "₹1,25,000",
-      change: "+12.5%",
-      changeType: "positive",
+      value: overviewData?.total_revenue?.value !== undefined ? `₹${overviewData.total_revenue.value}` : "₹0",
+      change: `${overviewData?.total_revenue?.change_percentage || 0}%`,
+      changeType: (overviewData?.total_revenue?.change_percentage || 0) >= 0 ? "positive" : "negative",
       bgClass: "bg-pink-50",
       iconColor: "text-pink-500",
       iconText: "₹",
@@ -27,9 +90,9 @@ export default function AdminDashboard() {
     },
     {
       name: "TODAY'S SALES",
-      value: "₹8,400",
-      change: "+4.2%",
-      changeType: "positive",
+      value: overviewData?.today_sales?.value !== undefined ? `₹${overviewData.today_sales.value}` : "₹0",
+      change: `${overviewData?.today_sales?.change_percentage || 0}%`,
+      changeType: (overviewData?.today_sales?.change_percentage || 0) >= 0 ? "positive" : "negative",
       bgClass: "bg-amber-50/70",
       iconColor: "text-amber-600",
       isTrendingIcon: true,
@@ -37,19 +100,19 @@ export default function AdminDashboard() {
     },
     {
       name: "TOTAL PRODUCTS",
-      value: "120",
-      change: "+4%",
-      changeType: "positive",
+      value: overviewData?.total_products?.value !== undefined ? overviewData.total_products.value : "0",
+      change: `${overviewData?.total_products?.change_percentage || 0}%`,
+      changeType: (overviewData?.total_products?.change_percentage || 0) >= 0 ? "positive" : "negative",
       bgClass: "bg-emerald-50/70",
       iconColor: "text-emerald-600",
       isProductIcon: true,
       badgeClass: "bg-emerald-50 text-emerald-600",
     },
     {
-      name: "TOTAL OREDERS",
-      value: "₹1,25,000",
-      change: "-0%",
-      changeType: "negative",
+      name: "TOTAL ORDERS",
+      value: overviewData?.total_orders?.value !== undefined ? overviewData.total_orders.value : "0",
+      change: `${overviewData?.total_orders?.change_percentage || 0}%`,
+      changeType: (overviewData?.total_orders?.change_percentage || 0) >= 0 ? "positive" : "negative",
       bgClass: "bg-[#EAE6D8]/40",
       iconColor: "text-[#8A8A68]",
       isProductIcon: true,
@@ -57,36 +120,13 @@ export default function AdminDashboard() {
     },
   ];
 
-  const topSelling = [
-    {
-      name: "Glow Essence Serum",
-      category: "Serum",
-      sold: "245 Sold",
-      price: "₹24,500",
-      imgSrc: "/product1.png", // Fallback to existing or placeholder
-    },
-    {
-      name: "Velvet Night Cream",
-      category: "Moisturizer",
-      sold: "182 Sold",
-      price: "₹18,200",
-      imgSrc: "/product2.png",
-    },
-    {
-      name: "Arctic Clay Mask",
-      category: "Treatments",
-      sold: "156 Sold",
-      price: "₹12,480",
-      imgSrc: "/category3.png",
-    },
-    {
-      name: "Rosehip Bloom Oil",
-      category: "Face Oils",
-      sold: "120 Sold",
-      price: "₹9,600",
-      imgSrc: "/details-p1.png",
-    },
-  ];
+  const topSelling = topSellingProductsData?.length > 0 ? topSellingProductsData.map((item) => ({
+      name: item.name || item.title || "Unknown Product",
+      category: item.category?.name || item.category || "Uncategorized",
+      sold: `${item.sold_count || item.sold || 0} Sold`,
+      price: item.price ? `₹${item.price}` : "₹0",
+      imgSrc: item.image || item.imgSrc || "/product1.png",
+  })) : [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-8 px-2">
@@ -103,10 +143,29 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-3">
           {/* Last 30 Days Dropdown */}
           <div className="relative">
-            <button className="flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors shadow-xs">
+            <button 
+              onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
+              className="flex items-center gap-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+            >
               <span>{selectedPeriod}</span>
-              <ChevronDown className="w-4 h-4 text-slate-500" />
+              <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isPeriodDropdownOpen ? "rotate-180" : ""}`} />
             </button>
+            {isPeriodDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                {["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 1 Year"].map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => {
+                      setSelectedPeriod(period);
+                      setIsPeriodDropdownOpen(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-sm font-medium hover:bg-slate-50 transition-colors cursor-pointer ${selectedPeriod === period ? "text-[#2C3B5E] bg-slate-50" : "text-slate-600"}`}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {/* Export Report Button */}
           <button className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer">
@@ -251,7 +310,9 @@ export default function AdminDashboard() {
             </button>
           </div>
           <div className="space-y-4.5 flex-1 flex flex-col justify-center">
-            {topSelling.map((item, index) => (
+            {topSelling.length === 0 ? (
+              <p className="text-slate-400 text-sm font-medium text-center">No top selling products found.</p>
+            ) : topSelling.map((item, index) => (
               <div key={index} className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center">
@@ -293,64 +354,23 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-bold text-[#2C3B5E]">Top Categories</h3>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-4">
-            {/* Custom Pie Chart using SVG */}
-            <div className="relative w-40 h-40">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                {/* Kitchen: 25% (2c3b5e) -> starting offset 0, dash 30 (circumference = 120) */}
-                {/* Powders: 15% (eae6d8) -> starting offset -30, dash 18 */}
-                {/* Beauty: 60% (c4c59f) -> starting offset -48, dash 72 */}
-                
-                {/* Beauty Slice (60%): strokeDasharray="188.5 314" strokeDashoffset="0" */}
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="30"
-                  fill="transparent"
-                  stroke="#C4C59F"
-                  strokeWidth="60"
-                  strokeDasharray="113.1 188.5"
-                  strokeDashoffset="0"
-                />
-                {/* Kitchen Slice (25%): strokeDasharray="47.1 188.5" strokeDashoffset="-113.1" */}
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="30"
-                  fill="transparent"
-                  stroke="#2C3B5E"
-                  strokeWidth="60"
-                  strokeDasharray="47.1 188.5"
-                  strokeDashoffset="-113.1"
-                />
-                {/* Powders Slice (15%): strokeDasharray="28.3 188.5" strokeDashoffset="-160.2" */}
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="30"
-                  fill="transparent"
-                  stroke="#EAE6D8"
-                  strokeWidth="60"
-                  strokeDasharray="28.3 188.5"
-                  strokeDashoffset="-160.2"
-                />
-              </svg>
-            </div>
-
-            {/* Legend */}
-            <div className="space-y-3 font-semibold text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-[#C4C59F]" />
-                <span>Beauty <strong className="text-slate-800">60%</strong></span>
+            {topCategoriesData?.length > 0 ? (
+              <div className="space-y-3 font-semibold text-sm text-slate-600 w-full px-4">
+                {topCategoriesData.map((cat, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#2C3B5E]" />
+                      <span>{cat.name || cat.category}</span>
+                    </div>
+                    <strong className="text-slate-800">{cat.percentage || cat.value || "0"}%</strong>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-[#2C3B5E]" />
-                <span>Kitchen <strong className="text-slate-800">25%</strong></span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3.5 h-3.5 rounded-full bg-[#EAE6D8]" />
-                <span>Powders <strong className="text-slate-800">15%</strong></span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-slate-400 text-sm font-medium text-center w-full py-8">
+                No top categories found.
+              </p>
+            )}
           </div>
         </div>
 
@@ -365,14 +385,20 @@ export default function AdminDashboard() {
           
           {/* Custom Bar Chart representation */}
           <div className="flex items-end justify-between h-40 px-2 mt-4">
-            {[75, 110, 85, 95, 130, 140, 160].map((height, idx) => (
-              <div key={idx} className="flex flex-col items-center gap-2 flex-1 mx-2">
-                <div 
-                  style={{ height: `${height}px` }} 
-                  className="w-full bg-[#E2E8F0]/80 rounded-t-xl hover:bg-[#CBD5E1] transition-all duration-300"
-                />
-              </div>
-            ))}
+            {revenueOverviewData?.length > 0 ? (
+              revenueOverviewData.map((dataPoint, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-2 flex-1 mx-2">
+                  <div 
+                    style={{ height: `${dataPoint.value || 0}px` }} 
+                    className="w-full bg-[#2C3B5E]/80 rounded-t-xl hover:bg-[#1E2A47] transition-all duration-300"
+                  />
+                </div>
+              ))
+            ) : (
+              <p className="text-slate-400 text-sm font-medium w-full text-center py-8">
+                No revenue data available.
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -403,82 +429,45 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="text-sm font-semibold text-slate-700 divide-y divide-slate-50">
-              {[
-                {
-                  id: "#LMR-8921",
-                  customer: "Ananya Kapoor",
-                  avatar: "AK",
-                  avatarBg: "bg-[#E6E6D8] text-[#808060]",
-                  amount: "₹3,450",
-                  status: "Delivered",
-                  statusClass: "bg-[#DEF7EC] text-[#03543F]",
-                  payment: "UPI",
-                  date: "Oct 24, 2023",
-                },
-                {
-                  id: "#LMR-8920",
-                  customer: "Rohan Joshi",
-                  avatar: "RJ",
-                  avatarBg: "bg-[#FDE2E2] text-[#9B1C1C]",
-                  amount: "₹1,200",
-                  status: "Processing",
-                  statusClass: "bg-[#E1EFFE] text-[#1E429F]",
-                  payment: "Card",
-                  date: "Oct 24, 2023",
-                },
-                {
-                  id: "#LMR-8919",
-                  customer: "Sanya Malhotra",
-                  avatar: "SM",
-                  avatarBg: "bg-[#E6E6D8] text-[#808060]",
-                  amount: "₹4,800",
-                  status: "Shipped",
-                  statusClass: "bg-[#FDF6B2] text-[#723B13]",
-                  payment: "Net Banking",
-                  date: "Oct 23, 2023",
-                },
-                {
-                  id: "#LMR-8918",
-                  customer: "Vikram Singh",
-                  avatar: "VS",
-                  avatarBg: "bg-[#E1EFFE] text-[#1E429F]",
-                  amount: "₹2,100",
-                  status: "Cancelled",
-                  statusClass: "bg-[#FDE2E2] text-[#9B1C1C]",
-                  payment: "UPI",
-                  date: "Oct 23, 2023",
-                },
-              ].map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-4.5 px-6 font-bold text-[#8A5C5C]">{order.id}</td>
-                  <td className="py-4.5 px-6">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${order.avatarBg}`}>
-                        {order.avatar}
+              {recentOrdersData?.length > 0 ? (
+                recentOrdersData.map((order, idx) => (
+                  <tr key={order.id || idx} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-4.5 px-6 font-bold text-[#8A5C5C]">{order.id || `#ORD-${idx}`}</td>
+                    <td className="py-4.5 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-[#E6E6D8] text-[#808060]">
+                          {order.customer?.charAt(0) || "U"}
+                        </div>
+                        <span className="text-slate-800">{order.customer || "Unknown"}</span>
                       </div>
-                      <span className="text-slate-800">{order.customer}</span>
-                    </div>
-                  </td>
-                  <td className="py-4.5 px-6 text-slate-800">{order.amount}</td>
-                  <td className="py-4.5 px-6">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${order.statusClass}`}>
-                      {order.status}
-                    </span>
-                  </td>
-                  <td className="py-4.5 px-6 text-slate-500">{order.payment}</td>
-                  <td className="py-4.5 px-6 text-slate-500">
-                    <div className="leading-tight">
-                      <span>{order.date.split(",")[0]},</span>
-                      <span className="block text-xs text-slate-400">{order.date.split(",")[1]?.trim()}</span>
-                    </div>
-                  </td>
-                  <td className="py-4.5 px-6 text-center">
-                    <button className="text-slate-400 hover:text-[#2C3B5E] p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer">
-                      <Eye className="w-5 h-5" />
-                    </button>
+                    </td>
+                    <td className="py-4.5 px-6 text-slate-800">{order.amount ? `₹${order.amount}` : "₹0"}</td>
+                    <td className="py-4.5 px-6">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#E1EFFE] text-[#1E429F]">
+                        {order.status || "Pending"}
+                      </span>
+                    </td>
+                    <td className="py-4.5 px-6 text-slate-500">{order.payment || "Unknown"}</td>
+                    <td className="py-4.5 px-6 text-slate-500">
+                      <div className="leading-tight">
+                        <span>{order.date ? order.date.split(",")[0] : "-"},</span>
+                        <span className="block text-xs text-slate-400">{order.date ? order.date.split(",")[1]?.trim() : ""}</span>
+                      </div>
+                    </td>
+                    <td className="py-4.5 px-6 text-center">
+                      <button className="text-slate-400 hover:text-[#2C3B5E] p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer">
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-slate-400 text-sm">
+                    No recent orders found.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
