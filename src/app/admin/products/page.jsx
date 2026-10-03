@@ -17,6 +17,7 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi, getProductVariantsApi, deleteProductVariantApi, deleteProductImageApi, deleteProductApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
 import ManageVariantsSection from "@/components/ManageVariantsSection";
@@ -212,7 +213,7 @@ export default function AdminProducts() {
         setExistingImageIds(newExistingIds);
       } catch (err) {
         console.error("Failed to delete image from server:", err);
-        alert("Failed to delete image. Please try again.");
+        toast.error("Failed to delete image. Please try again.");
         return; // Exit early if server deletion fails
       }
     }
@@ -343,11 +344,11 @@ export default function AdminProducts() {
 
         setViewMode("edit");
       } else {
-        alert("Failed to fetch product details.");
+        toast.error("Failed to fetch product details.");
       }
     } catch (err) {
       console.error("Failed to load product for editing:", err);
-      alert("An error occurred while fetching product details.");
+      toast.error("An error occurred while fetching product details.");
     } finally {
       setIsLoading(false);
     }
@@ -361,14 +362,14 @@ export default function AdminProducts() {
     try {
       const response = await deleteProductApi(productId);
       if (response && (response.status === 200 || response.status === 204)) {
-        alert("Product deleted successfully!");
+        toast.success("Product deleted successfully!");
         fetchProducts();
       } else {
-        alert("Failed to delete product.");
+        toast.error("Failed to delete product.");
       }
     } catch (err) {
       console.error("Failed to delete product:", err);
-      alert("Error deleting product.");
+      toast.error("Error deleting product.");
     } finally {
       setIsLoading(false);
     }
@@ -382,11 +383,11 @@ export default function AdminProducts() {
         setDetailProduct(response.data.data);
         setActiveImageIndex(0);
       } else {
-        alert("Failed to fetch product details.");
+        toast.error("Failed to fetch product details.");
       }
     } catch (err) {
       console.error("Failed to load product details:", err);
-      alert("Error loading product details.");
+      toast.error("Error loading product details.");
     } finally {
       setIsLoading(false);
     }
@@ -485,10 +486,10 @@ export default function AdminProducts() {
             }
           }
 
-          alert("Product created successfully!");
+          toast.success("Product created successfully!");
           fetchProducts();
         } else {
-          alert("Failed to save product to the server.");
+          toast.error("Failed to save product to the server.");
         }
       } else if (viewMode === "edit" && editingProduct) {
         const response = await updateProductApi(editingProduct.id, reqBody);
@@ -565,15 +566,15 @@ export default function AdminProducts() {
             }
           }
 
-          alert("Product updated successfully!");
+          toast.success("Product updated successfully!");
           fetchProducts();
         } else {
-          alert("Failed to update product on the server.");
+          toast.error("Failed to update product on the server.");
         }
       }
     } catch (error) {
       console.error("Error saving product:", error);
-      alert("API request failed. Failed to save product.");
+      toast.error("API request failed. Failed to save product.");
     } finally {
       setIsLoading(false);
       resetForm();
@@ -610,23 +611,41 @@ export default function AdminProducts() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-[#553C9A]">Product Active</span>
-            <button
-              onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.isActive ? "bg-[#553C9A]" : "bg-slate-200"
-                }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isActive ? "translate-x-5" : "translate-x-0"
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:border-r border-slate-200 sm:pr-4">
+              <span className="text-sm font-bold text-[#553C9A]">Product Active</span>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, isActive: !prev.isActive }))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.isActive ? "bg-[#553C9A]" : "bg-slate-200"
                   }`}
-              />
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isActive ? "translate-x-5" : "translate-x-0"
+                    }`}
+                />
+              </button>
+            </div>
+            
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer text-center hidden sm:block"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="product-form"
+              className="px-5 py-2.5 text-sm font-bold text-white bg-[#553C9A] rounded-xl hover:bg-[#432F7A] transition-colors cursor-pointer text-center shadow-md shadow-[#553C9A]/10"
+            >
+              {viewMode === "add" ? "Save Product" : "Update Product"}
             </button>
           </div>
         </div>
 
         {/* Form Container */}
-        <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <form id="product-form" onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
           {/* Left Column */}
           <div className="space-y-6">
@@ -682,6 +701,81 @@ export default function AdminProducts() {
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
                 />
               </div>
+            </div>
+                {/* Price  */}
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-50 pb-2">
+                <h2 className="text-lg font-bold text-slate-800">
+                  Price by Variants
+                </h2>
+                <button
+                  type="button"
+                  onClick={addVariantField}
+                  className="flex items-center gap-1.5 text-xs font-bold text-[#553C9A] hover:text-[#432F7A] transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Variant
+                </button>
+              </div>
+
+              {/*  Product Variants Lists */}
+              {productVariants.length > 0 && (
+                <div className="border-t border-slate-100 pt-2 space-y-2">
+                  {productVariants.map((item, index) => (
+                    <div key={index} className="grid grid-cols-3 gap-3 items-end bg-slate-50/50 p-2 rounded-2xl border border-slate-100 relative group animate-in slide-in-from-top-2 duration-200">
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500">Variant Name</label>
+                        <select
+                          required
+                          value={item.name}
+                          onChange={(e) => handleVariantFieldChange(index, "name", e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                        >
+                          <option value="">Select Variant</option>
+                          {availableVariantNames.map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500">Price (₹)</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="399.00"
+                          value={item.price}
+                          onChange={(e) => handleVariantFieldChange(index, "price", e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                        />
+                      </div>
+
+                      <div className="space-y-1 relative pr-8">
+                        <label className="text-[10px] font-bold text-slate-500">Stock</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          value={item.stock}
+                          onChange={(e) => handleVariantFieldChange(index, "stock", e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVariantField(index)}
+                          className="absolute right-1 bottom-1.5 p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Detailed Content */}
@@ -816,98 +910,8 @@ export default function AdminProducts() {
               </div>
             </div>
 
-            {/* Price  */}
-            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-50 pb-2">
-                <h2 className="text-lg font-bold text-slate-800">
-                  Price by Variants
-                </h2>
-                <button
-                  type="button"
-                  onClick={addVariantField}
-                  className="flex items-center gap-1.5 text-xs font-bold text-[#553C9A] hover:text-[#432F7A] transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Variant
-                </button>
-              </div>
+        
 
-              {/*  Product Variants Lists */}
-              {productVariants.length > 0 && (
-                <div className="border-t border-slate-100 pt-2 space-y-2">
-                  {productVariants.map((item, index) => (
-                    <div key={index} className="grid grid-cols-3 gap-3 items-end bg-slate-50/50 p-2 rounded-2xl border border-slate-100 relative group animate-in slide-in-from-top-2 duration-200">
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500">Variant Name</label>
-                        <select
-                          required
-                          value={item.name}
-                          onChange={(e) => handleVariantFieldChange(index, "name", e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
-                        >
-                          <option value="">Select Variant</option>
-                          {availableVariantNames.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-500">Price (₹)</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="399.00"
-                          value={item.price}
-                          onChange={(e) => handleVariantFieldChange(index, "price", e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
-                        />
-                      </div>
-
-                      <div className="space-y-1 relative pr-8">
-                        <label className="text-[10px] font-bold text-slate-500">Stock</label>
-                        <input
-                          type="number"
-                          required
-                          min="0"
-                          value={item.stock}
-                          onChange={(e) => handleVariantFieldChange(index, "stock", e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none focus:border-[#553C9A]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeVariantField(index)}
-                          className="absolute right-1 bottom-1.5 p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-4 pt-2">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer text-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 py-3 text-sm font-bold text-white bg-[#553C9A] rounded-xl hover:bg-[#432F7A] transition-colors cursor-pointer text-center shadow-md shadow-[#553C9A]/10"
-              >
-                {viewMode === "add" ? "Save Product" : "Update Product"}
-              </button>
-            </div>
           </div>
 
           {/* Right Column: Images */}
@@ -1002,13 +1006,22 @@ export default function AdminProducts() {
               if (productList.length > 0) {
                 startManageVariants(productList[0]);
               } else {
-                alert("No products available to manage variants.");
+                toast.error("No products available to manage variants.");
               }
             }}
             className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer"
           >
             <Layers className="w-4 h-4" />
             <span>Product variant</span>
+          </button>
+
+
+          <button
+            onClick={() => toast("Bulk upload feature coming soon!", { icon: "🚀" })}
+            className="flex items-center gap-2 text-sm font-bold text-[#2C3B5E] bg-white border-2 border-[#2C3B5E]/20 px-5 py-2.5 rounded-xl hover:bg-slate-50 hover:border-[#2C3B5E] transition-all shadow-sm cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Bulk Upload</span>
           </button>
           <button
             onClick={() => setViewMode("add")}
@@ -1106,7 +1119,11 @@ export default function AdminProducts() {
             <tbody className="text-sm font-semibold text-slate-700 divide-y divide-slate-50">
               {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr 
+                    key={product.id} 
+                    className="hover:bg-slate-50/50 transition-colors cursor-pointer"
+                    onClick={() => showProductDetails(product.id)}
+                  >
                     {/* Product Image and Name */}
                     <td className="py-4.5 px-6">
                       <div className="flex items-center gap-3">
@@ -1154,7 +1171,7 @@ export default function AdminProducts() {
                       <div className="flex items-center justify-center gap-2">
                         {/* View Product Details page */}
                         <button
-                          onClick={() => showProductDetails(product.id)}
+                          onClick={(e) => { e.stopPropagation(); showProductDetails(product.id); }}
                           className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                           title="View Product Details"
                         >
@@ -1162,7 +1179,7 @@ export default function AdminProducts() {
                         </button>
                         {/* Manage Variants button */}
                         <button
-                          onClick={() => startManageVariants(product)}
+                          onClick={(e) => { e.stopPropagation(); startManageVariants(product); }}
                           className="text-slate-400 hover:text-[#4A5D8A] p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                           title="Manage Variants"
                         >
@@ -1170,7 +1187,7 @@ export default function AdminProducts() {
                         </button>
                         {/* Edit button */}
                         <button
-                          onClick={() => startEdit(product)}
+                          onClick={(e) => { e.stopPropagation(); startEdit(product); }}
                           className="text-slate-400 hover:text-[#2C3B5E] p-1.5 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                           title="Edit Product"
                         >
@@ -1178,7 +1195,7 @@ export default function AdminProducts() {
                         </button>
                         {/* Delete button */}
                         <button
-                          onClick={() => handleDelete(product.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }}
                           className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
                           title="Delete Product"
                         >

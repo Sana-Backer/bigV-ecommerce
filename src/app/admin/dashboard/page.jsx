@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { getDashboardOverviewApi, getSalesAnalyticsApi, getTopSellingProductsApi, getTopCategoriesApi, getRevenueOverviewApi, getRecentOrdersApi } from "../../../services/dashboardApi";
 import { 
   TrendingUp, 
@@ -9,9 +10,9 @@ import {
   Download, 
   TrendingDown,
   ArrowUpRight,
-  Eye
+  Eye,
+  X
 } from "lucide-react";
-
 export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("Last 30 Days");
   const [overviewData, setOverviewData] = useState(null);
@@ -21,6 +22,7 @@ export default function AdminDashboard() {
   const [revenueOverviewData, setRevenueOverviewData] = useState(null);
   const [recentOrdersData, setRecentOrdersData] = useState(null);
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+  const [isTopSellingModalOpen, setIsTopSellingModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchDashboardOverview = async () => {
@@ -107,6 +109,7 @@ export default function AdminDashboard() {
       iconColor: "text-emerald-600",
       isProductIcon: true,
       badgeClass: "bg-emerald-50 text-emerald-600",
+      href: "/admin/products",
     },
     {
       name: "TOTAL ORDERS",
@@ -117,6 +120,7 @@ export default function AdminDashboard() {
       iconColor: "text-[#8A8A68]",
       isProductIcon: true,
       badgeClass: "bg-[#EAE6D8]/50 text-[#8A8A68]",
+      href: "/admin/orders",
     },
   ];
 
@@ -177,10 +181,13 @@ export default function AdminDashboard() {
       {/* Stats Cards Grid */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, idx) => {
+          const CardContainer = stat.href ? Link : "div";
+          const containerProps = stat.href ? { href: stat.href } : {};
           return (
-            <div
+            <CardContainer
               key={idx}
-              className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200"
+              {...containerProps}
+              className={`relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-6 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200 ${stat.href ? "cursor-pointer hover:border-[#2C3B5E]/30" : ""}`}
             >
               {/* Top Row: Icon on Left, Badge on Right */}
               <div className="flex items-center justify-between">
@@ -212,7 +219,7 @@ export default function AdminDashboard() {
               <div className="absolute right-0 bottom-0 opacity-5 pointer-events-none transform translate-x-4 translate-y-4">
                 <TrendingUp className="w-24 h-24 text-slate-900" />
               </div>
-            </div>
+            </CardContainer>
           );
         })}
       </div>
@@ -305,14 +312,17 @@ export default function AdminDashboard() {
         <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-[#2C3B5E]">Top Selling</h3>
-            <button className="text-xs font-bold text-[#2C3B5E] hover:underline">
+            <button 
+              onClick={() => setIsTopSellingModalOpen(true)}
+              className="text-xs font-bold text-[#2C3B5E] hover:underline cursor-pointer"
+            >
               View All
             </button>
           </div>
           <div className="space-y-4.5 flex-1 flex flex-col justify-center">
             {topSelling.length === 0 ? (
               <p className="text-slate-400 text-sm font-medium text-center">No top selling products found.</p>
-            ) : topSelling.map((item, index) => (
+            ) : topSelling.slice(0, 5).map((item, index) => (
               <div key={index} className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center">
@@ -485,6 +495,54 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Top Selling Modal */}
+      {isTopSellingModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+              <h2 className="text-lg font-bold text-[#2C3B5E]">All Top Selling Products</h2>
+              <button 
+                onClick={() => setIsTopSellingModalOpen(false)}
+                className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              {topSelling.map((item, index) => (
+                <div key={index} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                      <img
+                        src={item.imgSrc}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.parentNode.className = "w-14 h-14 rounded-xl bg-gradient-to-tr from-pink-100 to-amber-100 flex items-center justify-center font-bold text-xs text-slate-700";
+                          e.target.parentNode.innerText = item.name.split(" ").map(n => n[0]).join("");
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800 tracking-tight">
+                        {item.name}
+                      </h4>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">
+                        {item.category} • {item.sold}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-extrabold text-slate-800 shrink-0 ml-4">
+                    {item.price}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

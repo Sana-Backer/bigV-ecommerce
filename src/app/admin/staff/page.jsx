@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   Search,
   Plus,
@@ -86,19 +87,27 @@ export default function AdminStaff() {
     setViewMode("edit");
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to deactivate this staff member?")) return;
+  const [deactivateId, setDeactivateId] = useState(null);
+
+  const handleDelete = (id) => {
+    setDeactivateId(id);
+  };
+
+  const executeDeactivate = async () => {
+    if (!deactivateId) return;
     try {
-      const res = await deactivateUserApi(id);
-      if (res && res.status === 200) {
-        alert("Staff deactivated successfully.");
+      const res = await deactivateUserApi(deactivateId);
+      if (res && (res.status === 200 || res.status === 204)) {
+        toast.success("Staff deactivated successfully.");
         fetchStaff();
       } else {
-        alert(res?.data?.message || "Failed to deactivate staff.");
+        toast.error(res?.data?.message || "Failed to deactivate staff.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error deactivating staff.");
+      toast.error("Error deactivating staff.");
+    } finally {
+      setDeactivateId(null);
     }
   };
 
@@ -119,11 +128,28 @@ export default function AdminStaff() {
         };
         const res = await createStaffApi(payload);
         if (res && (res.status === 201 || res.status === 200) && res.data?.status === "success") {
-          alert("Staff created successfully!");
+          toast.success("Staff created successfully!");
           resetForm();
           fetchStaff();
         } else {
-          alert(res?.response?.data?.message || res?.data?.message || "Failed to create staff.");
+          const data = res?.response?.data || res?.data;
+          if (data?.errors) {
+            toast.error(
+              <div>
+                <p className="font-bold">Validation failed:</p>
+                <ul className="list-disc pl-4 text-xs mt-1">
+                  {Object.keys(data.errors).map(key => (
+                    <li key={key} className="capitalize">
+                      <strong>{key}</strong>: {data.errors[key].join(", ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>,
+              { duration: 5000 }
+            );
+          } else {
+            toast.error(data?.message || "Failed to create staff.");
+          }
         }
       } else if (viewMode === "edit" && editingStaff) {
         // Update user basic details
@@ -142,19 +168,36 @@ export default function AdminStaff() {
               await changeUserRoleApi(editingStaff.id, formData.role);
             } catch (roleErr) {
               console.error("Failed to update role:", roleErr);
-              alert("Basic details updated, but failed to update role (requires Admin).");
+              toast.error("Basic details updated, but failed to update role (requires Admin).");
             }
           }
-          alert("Staff updated successfully!");
+          toast.success("Staff updated successfully!");
           resetForm();
           fetchStaff();
         } else {
-          alert(res?.response?.data?.message || res?.data?.message || "Failed to update staff.");
+          const data = res?.response?.data || res?.data;
+          if (data?.errors) {
+            toast.error(
+              <div>
+                <p className="font-bold">Validation failed:</p>
+                <ul className="list-disc pl-4 text-xs mt-1">
+                  {Object.keys(data.errors).map(key => (
+                    <li key={key} className="capitalize">
+                      <strong>{key}</strong>: {data.errors[key].join(", ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>,
+              { duration: 5000 }
+            );
+          } else {
+            toast.error(data?.message || "Failed to update staff.");
+          }
         }
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "An error occurred.");
+      toast.error(err.response?.data?.message || "An error occurred.");
     } finally {
       setIsLoading(false);
     }
@@ -469,6 +512,48 @@ export default function AdminStaff() {
           <span>Showing {filteredStaff.length} of {staffList.length} staff</span>
         </div>
       </div>
+
+      {/* Confirmation Modal Overlay */}
+      {deactivateId && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setDeactivateId(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all duration-300 scale-100 translate-y-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-6 h-6 text-rose-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">
+                  Deactivate Staff?
+                </h3>
+                <p className="text-xs font-bold text-rose-500 uppercase tracking-wider mt-0.5">Critical Action</p>
+              </div>
+            </div>
+            <p className="text-sm font-medium text-slate-500 mb-6 leading-relaxed">
+              Are you sure you want to deactivate this staff member? They will no longer be able to log in to the admin dashboard.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeactivateId(null)}
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl transition-all cursor-pointer shadow-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => executeDeactivate()}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition-all cursor-pointer shadow-md shadow-rose-500/20"
+              >
+                Deactivate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
