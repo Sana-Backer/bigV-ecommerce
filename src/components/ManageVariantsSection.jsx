@@ -64,14 +64,19 @@ export default function ManageVariantsSection({
     e.preventDefault();
     if (!variantFormData.name.trim()) return;
 
+    const basePrice = parseFloat(variantFormData.price) || 0;
+    const salePrice = variantFormData.sale_price ? parseFloat(variantFormData.sale_price) : null;
+
+    if (salePrice !== null && salePrice > basePrice) {
+      alert("Sale price cannot be greater than the regular price!");
+      return;
+    }
+
     setIsLoading(true);
 
     const nameSlug = variantFormData.name.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const generatedSku = `${product.sku || "PROD"}-VAR-${nameSlug}-${Date.now().toString().slice(-3)}`;
     const finalSku = isVariantEditing ? isVariantEditing.sku : generatedSku;
-
-    const cleanPrice = product.price ? product.price.replace(/[^\d.]/g, "") : "399.00";
-    const basePrice = parseFloat(cleanPrice) || 399.00;
 
     const attrs = { size: variantFormData.name };
 
@@ -80,9 +85,9 @@ export default function ManageVariantsSection({
       sku: finalSku,
       attributes: attrs,
       price: basePrice.toFixed(2),
-      sale_price: null,
-      stock_quantity: parseInt(product.stock) || 0,
-      weight: "0.100",
+      sale_price: salePrice !== null ? salePrice.toFixed(2) : null,
+      stock_quantity: parseInt(variantFormData.stock_quantity) || 0,
+      weight: variantFormData.weight || "0.100",
       is_default: variantFormData.is_default,
       is_active: true
     };
@@ -110,11 +115,11 @@ export default function ManageVariantsSection({
         fetchVariants(product.id);
         if (onRefreshProducts) onRefreshProducts();
       } else {
-        alert("Failed to save variant. Make sure the name is unique.");
+        alert("Failed to save variant. Make sure the name is unique and sale price is valid.");
       }
     } catch (err) {
       console.error("Save variant failed:", err);
-      alert("Failed to save variant. Please check fields and try again.");
+      alert(err?.response?.data?.sale_price?.[0] || "Failed to save variant. Please check fields and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -188,22 +193,32 @@ export default function ManageVariantsSection({
                         </span>
                       )}
                     </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => startEditVariant(variant)}
-                        className="text-slate-400 hover:text-[#2C3B5E] p-1.5 rounded-lg hover:bg-slate-50 transition-all cursor-pointer"
-                        title="Edit Variant"
-                      >
-                        <Edit className="w-4.5 h-4.5" />
-                      </button>
-                      <button
-                        onClick={() => handleVariantDelete(variant.id)}
-                        className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
-                        title="Delete Variant"
-                      >
-                        <Trash2 className="w-4.5 h-4.5" />
-                      </button>
+                    
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-slate-700">₹{variant.effective_price || variant.price}</div>
+                        {variant.stock_quantity <= 0 ? (
+                          <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Out of Stock</div>
+                        ) : (
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Stock: {variant.stock_quantity}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditVariant(variant)}
+                          className="text-slate-400 hover:text-[#2C3B5E] p-1.5 rounded-lg hover:bg-slate-50 transition-all cursor-pointer"
+                          title="Edit Variant"
+                        >
+                          <Edit className="w-4.5 h-4.5" />
+                        </button>
+                        <button
+                          onClick={() => handleVariantDelete(variant.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                          title="Delete Variant"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -234,6 +249,47 @@ export default function ManageVariantsSection({
                   placeholder="e.g. 50ml - Lavender"
                   value={variantFormData.name}
                   onChange={(e) => setVariantFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
+                />
+              </div>
+
+              {/* Price & Sale Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Price (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={variantFormData.price}
+                    onChange={(e) => setVariantFormData(prev => ({ ...prev, price: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500">Sale Price (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Optional"
+                    value={variantFormData.sale_price}
+                    onChange={(e) => setVariantFormData(prev => ({ ...prev, sale_price: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Stock Quantity */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500">Stock Quantity</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={variantFormData.stock_quantity}
+                  onChange={(e) => setVariantFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
                 />
               </div>

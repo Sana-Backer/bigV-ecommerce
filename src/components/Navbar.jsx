@@ -169,8 +169,8 @@ const Navbar = ({ theme = "dark" }) => {
             <nav className={`hidden md:flex items-center gap-10 ${textColorClass} text-sm font-medium transition-colors duration-500`}>
               <Link href="/products" className="hover:opacity-80 transition-opacity">Shop</Link>
               <Link href="/about-us" className="hover:opacity-80 transition-opacity">About Us</Link>
-              <Link href="#" className="hover:opacity-80 transition-opacity">Blog</Link>
-              <Link href="#" className="hover:opacity-80 transition-opacity">Contact</Link>
+              {/* <Link href="#" className="hover:opacity-80 transition-opacity">Blog</Link> */}
+              <Link href="/contact" className="hover:opacity-80 transition-opacity">Contact</Link>
             </nav>
 
             {/* Icons */}
