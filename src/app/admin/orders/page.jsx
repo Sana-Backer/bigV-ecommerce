@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   ShoppingBag,
   ShoppingCart,
@@ -146,11 +147,11 @@ export default function OrderManagement() {
           setSelectedOrder(prev => ({ ...prev, status: newStatus }));
         }
       } else {
-        alert(response?.data?.message || "Invalid status transition.");
+        toast.error(response?.data?.message || "Invalid status transition.");
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to update order status.");
+      toast.error(err.response?.data?.message || "Failed to update order status.");
     }
   };
 
@@ -171,11 +172,11 @@ export default function OrderManagement() {
           setSelectedOrder(prev => ({ ...prev, payment: newPaymentStatus }));
         }
       } else {
-        alert(response?.data?.message || "Invalid payment status transition.");
+        toast.error(response?.data?.message || "Invalid payment status transition.");
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to update payment status.");
+      toast.error(err.response?.data?.message || "Failed to update payment status.");
     }
   };
 
@@ -196,11 +197,11 @@ export default function OrderManagement() {
           setSelectedOrder(prev => ({ ...prev, fulfillment: newFulfillmentStatus }));
         }
       } else {
-        alert(response?.data?.message || "Invalid fulfillment status transition.");
+        toast.error(response?.data?.message || "Invalid fulfillment status transition.");
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to update fulfillment status.");
+      toast.error(err.response?.data?.message || "Failed to update fulfillment status.");
     }
   };
 
@@ -223,11 +224,11 @@ export default function OrderManagement() {
           setSelectedOrder(prev => ({ ...prev, status: "Cancelled" }));
         }
       } else {
-        alert(response?.data?.message || "Failed to cancel order.");
+        toast.error(response?.data?.message || "Failed to cancel order.");
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to cancel order.");
+      toast.error(err.response?.data?.message || "Failed to cancel order.");
     }
   };
 
@@ -244,15 +245,15 @@ export default function OrderManagement() {
         reason: "Refunded by admin"
       });
       if (response && (response.status === 200 || response.status === 201)) {
-        alert("Refund processed successfully!");
+        toast.success("Refund processed successfully!");
         // Automatically update the local status to refunded to reflect the change
         handlePaymentChange(orderId, "refunded");
       } else {
-        alert(response?.data?.message || response?.data?.error || "Failed to process refund.");
+        toast.error(response?.data?.message || response?.data?.error || "Failed to process refund.");
       }
     } catch (err) {
       console.error("Refund error:", err);
-      alert(err.response?.data?.message || err.response?.data?.error || "Failed to process refund.");
+      toast.error(err.response?.data?.message || err.response?.data?.error || "Failed to process refund.");
     }
   };
 

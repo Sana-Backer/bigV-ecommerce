@@ -34,6 +34,9 @@ export default function AdminProducts() {
   const [detailProduct, setDetailProduct] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [existingImageIds, setExistingImageIds] = useState({});
+  const [productToDelete, setProductToDelete] = useState(null);
+
+
 
   // Variant States
   const [variantProduct, setVariantProduct] = useState(null);
@@ -41,6 +44,8 @@ export default function AdminProducts() {
   // Dynamic Product Creation Variants
   const [productVariants, setProductVariants] = useState([]);
   const [availableVariantNames, setAvailableVariantNames] = useState([]);
+
+  const [formError, setFormError] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -225,6 +230,7 @@ export default function AdminProducts() {
   };
 
   const resetForm = () => {
+    setFormError(null);
     setFormData({
       name: "",
       description: "",
@@ -355,9 +361,9 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async (productId) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) {
-      return;
-    }
+    setProductToDelete(null);
+
+
     setIsLoading(true);
     try {
       const response = await deleteProductApi(productId);
@@ -426,6 +432,8 @@ export default function AdminProducts() {
       faqs: Array.isArray(formData.faqs) ? formData.faqs.filter(f => f.question.trim() || f.answer.trim()) : []
     };
 
+    setFormError(null);
+    let success = false;
     try {
       if (viewMode === "add") {
         const response = await addProductApi(reqBody);
@@ -488,7 +496,9 @@ export default function AdminProducts() {
 
           toast.success("Product created successfully!");
           fetchProducts();
+          success = true;
         } else {
+          setFormError("Failed to save product to the server.");
           toast.error("Failed to save product to the server.");
         }
       } else if (viewMode === "edit" && editingProduct) {
@@ -568,16 +578,30 @@ export default function AdminProducts() {
 
           toast.success("Product updated successfully!");
           fetchProducts();
+          success = true;
         } else {
+          setFormError("Failed to update product on the server.");
           toast.error("Failed to update product on the server.");
         }
       }
     } catch (error) {
       console.error("Error saving product:", error);
-      toast.error("API request failed. Failed to save product.");
+      let errorMsg = "API request failed. Failed to save product.";
+      if (error.response && error.response.data) {
+        const data = error.response.data;
+        if (data.errors) {
+          errorMsg = Object.entries(data.errors).map(([k, v]) => `${k}: ${v.join(" ")}`).join(" | ");
+        } else if (data.message) {
+          errorMsg = data.message;
+        }
+      }
+      setFormError(errorMsg);
+      toast.error("Failed to save product to the server.");
     } finally {
       setIsLoading(false);
-      resetForm();
+      if (success) {
+        resetForm();
+      }
     }
   };
 
@@ -594,6 +618,15 @@ export default function AdminProducts() {
   if (viewMode === "add" || viewMode === "edit") {
     return (
       <div className="space-y-6 animate-in fade-in duration-500 pb-8 px-2 text-slate-800">
+        {formError && (
+          <div className="p-4 mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Failed to save product</p>
+              <p>{formError}</p>
+            </div>
+          </div>
+        )}
         {/* Header with toggle */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
@@ -1195,7 +1228,7 @@ export default function AdminProducts() {
                         </button>
                         {/* Delete button */}
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }}
+                          onClick={(e) => { e.stopPropagation(); setProductToDelete(product.id); }}
                           className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
                           title="Delete Product"
                         >
@@ -1391,6 +1424,36 @@ export default function AdminProducts() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Delete Product</h3>
+              <p className="text-slate-500 text-sm">
+                Are you sure you want to delete this product? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex bg-slate-50 border-t border-slate-100 p-3 gap-3">
+              <button
+                onClick={() => setProductToDelete(null)}
+                className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(productToDelete)}
+                className="flex-1 py-2.5 bg-red-800 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors shadow-md shadow-red-600/20 cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

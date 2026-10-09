@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import {
   Ticket,
   Percent,
@@ -253,7 +254,7 @@ export default function AdminCoupons() {
       }
     } catch (err) {
       console.error("Failed to save coupon:", err);
-      alert("Failed to save coupon. Check console for details.");
+      toast.error("Failed to save coupon. Check console for details.");
     }
   };
 

@@ -217,7 +217,7 @@ const Testimonials = () => {
                   >
 
                     <Image
-                      src={item.image}
+                      src={item.image || "/placeholder.png"}
                       alt={item.name}
                       fill
                       className="object-cover"
@@ -358,7 +358,7 @@ const Testimonials = () => {
       >
 
         <Image
-          src={testimonials[2].image}
+          src={testimonials[2].image || "/placeholder.png"}
           alt={testimonials[2].name}
           fill
           className="object-cover"

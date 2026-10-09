@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -100,7 +101,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       if (res?.response || res?.isAxiosError) {
         const errorData = res.response?.data || res.data;
         const errMsg = errorData?.errors?.detail || errorData?.message || "Failed to add to cart";
-        alert(errMsg);
+        toast.error(errMsg);
         return;
       }
 
@@ -110,11 +111,11 @@ export default function ProductDetailPage({ params: paramsPromise }) {
         window.dispatchEvent(new Event("cartUpdated"));
         window.dispatchEvent(new Event("openCart"));
       } else {
-        alert("Failed to add to cart");
+        toast.error("Failed to add to cart");
       }
     } catch (err) {
       console.error("Error adding to cart:", err);
-      alert("Something went wrong while adding to cart");
+      toast.error("Something went wrong while adding to cart");
     }
   };
 
@@ -137,7 +138,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
         if (errorData?.message === "Authentication credentials were not provided.") {
           setShowAuthModal(true);
         } else {
-          alert(typeof errorData === 'object' ? JSON.stringify(errorData) : "Failed to add to wishlist");
+          toast.error(typeof errorData === 'object' ? JSON.stringify(errorData) : "Failed to add to wishlist");
         }
       }
     } catch (err) {

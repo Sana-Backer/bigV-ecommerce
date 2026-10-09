@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { Plus, Edit, Trash2, Image as ImageIcon, Link as LinkIcon, CheckCircle, XCircle } from "lucide-react";
 import { getAdminBannersApi, createBannerApi, updateBannerApi, deleteBannerApi } from "@/services/bannersApi";
 
@@ -28,7 +29,8 @@ export default function BannersPage() {
     try {
       const res = await getAdminBannersApi();
       if (res.status === 200) {
-        setBanners(res.data);
+        const fetchedBanners = res.data.results || res.data.data || res.data;
+        setBanners(Array.isArray(fetchedBanners) ? fetchedBanners : []);
       }
     } catch (err) {
       console.error("Failed to fetch banners", err);
@@ -52,6 +54,8 @@ export default function BannersPage() {
         cta_text: banner.cta_text || "",
         imagePreview: banner.image,
         imageFile: null,
+        mobileImagePreview: banner.mobile_image || null,
+        mobileImageFile: null,
         is_active: banner.is_active,
         sort_order: banner.sort_order || 0,
       });
@@ -65,6 +69,8 @@ export default function BannersPage() {
         cta_text: "",
         imagePreview: null,
         imageFile: null,
+        mobileImagePreview: null,
+        mobileImageFile: null,
         is_active: true,
         sort_order: banners.filter(b => b.placement === activeTab).length,
       });
@@ -91,6 +97,9 @@ export default function BannersPage() {
     if (formData.imageFile) {
       submitData.append("image", formData.imageFile);
     }
+    if (formData.mobileImageFile) {
+      submitData.append("mobile_image", formData.mobileImageFile);
+    }
 
     const reqHeader = { "Content-Type": "multipart/form-data" };
 
@@ -110,7 +119,7 @@ export default function BannersPage() {
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to save banner.");
+      toast.error("Failed to save banner.");
     }
   };
 
@@ -137,6 +146,14 @@ export default function BannersPage() {
       }
     } catch (err) {
       console.error("Failed to toggle status", err);
+    }
+  };
+
+  const handleMobileImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setFormData({ ...formData, mobileImagePreview: previewUrl, mobileImageFile: file });
     }
   };
 
@@ -277,36 +294,68 @@ export default function BannersPage() {
               <form id="banner-form" onSubmit={handleSaveBanner} className="space-y-6">
                 
                 {/* Image Upload Area */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Banner Image</label>
-                  <div className="relative border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex flex-col items-center justify-center text-center transition-colors hover:border-[#2C3B5E] group">
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      required={!editingBanner} // Image is required for new banners
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    {formData.imagePreview ? (
-                      <div className="relative w-full aspect-video p-2">
-                         <img src={formData.imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm" />
-                         <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl m-2">
-                            <span className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2">
-                              <Edit className="w-3.5 h-3.5"/> Change Image
-                            </span>
-                         </div>
-                      </div>
-                    ) : (
-                      <div className="py-12 px-6 flex flex-col items-center justify-center gap-2">
-                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-400 group-hover:text-[#2C3B5E] transition-colors">
-                           <ImageIcon className="w-5 h-5" />
-                         </div>
-                         <div className="space-y-1">
-                           <p className="text-sm font-bold text-slate-700">Click to upload or drag and drop</p>
-                           <p className="text-xs font-medium text-slate-400">SVG, PNG, JPG or GIF (max. 5MB)</p>
-                         </div>
-                      </div>
-                    )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Desktop Image (Required)</label>
+                    <div className="relative border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex flex-col items-center justify-center text-center transition-colors hover:border-[#2C3B5E] group h-full min-h-[200px]">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        required={!editingBanner} // Image is required for new banners
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      {formData.imagePreview ? (
+                        <div className="relative w-full h-full p-2">
+                           <img src={formData.imagePreview} alt="Preview" className="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm" />
+                           <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl m-2">
+                              <span className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2">
+                                <Edit className="w-3.5 h-3.5"/> Change Image
+                              </span>
+                           </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 flex flex-col items-center justify-center gap-2 h-full">
+                           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-400 group-hover:text-[#2C3B5E] transition-colors">
+                             <ImageIcon className="w-5 h-5" />
+                           </div>
+                           <div className="space-y-1">
+                             <p className="text-sm font-bold text-slate-700">Click to upload desktop image</p>
+                           </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Mobile Image (Optional)</label>
+                    <div className="relative border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex flex-col items-center justify-center text-center transition-colors hover:border-[#2C3B5E] group h-full min-h-[200px]">
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleMobileImageChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      {formData.mobileImagePreview ? (
+                        <div className="relative w-1/2 mx-auto h-full p-2 aspect-[9/16]">
+                           <img src={formData.mobileImagePreview} alt="Mobile Preview" className="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm" />
+                           <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl m-2">
+                              <span className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2">
+                                <Edit className="w-3.5 h-3.5"/> Change
+                              </span>
+                           </div>
+                        </div>
+                      ) : (
+                        <div className="p-6 flex flex-col items-center justify-center gap-2 h-full">
+                           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-400 group-hover:text-[#2C3B5E] transition-colors">
+                             <ImageIcon className="w-5 h-5" />
+                           </div>
+                           <div className="space-y-1">
+                             <p className="text-sm font-bold text-slate-700">Click to upload mobile image</p>
+                           </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

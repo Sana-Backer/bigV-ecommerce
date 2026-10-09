@@ -51,7 +51,7 @@ export default function ProductsPage() {
         } else {
           res = await getProductsApi();
         }
-        
+
         if (res.status === 200) {
           let rawProducts = [];
           if (selectedCategory) {
@@ -59,14 +59,14 @@ export default function ProductsPage() {
           } else {
             rawProducts = res.data?.data || [];
           }
-          
+
           // Map product.category to a lowercase string so ProductGrid groups correctly
           const formattedProducts = rawProducts.map(p => ({
             ...p,
             category: typeof p.category === 'object' ? p.category?.name?.toLowerCase() : p.category?.toLowerCase() || 'other',
             image: p.primary_image || p.image // Ensure image prop works if ProductCard expects it
           }));
-          
+
           if (!selectedCategory) {
             try {
               const featRes = await getFeaturedProductsApi();
@@ -84,7 +84,7 @@ export default function ProductsPage() {
               console.error("Failed to fetch featured products", featErr);
             }
           }
-          
+
           setProducts(formattedProducts);
         }
       } catch (err) {
@@ -100,9 +100,8 @@ export default function ProductsPage() {
   const handleAddToCart = (product) => {
     toast.custom((t) => (
       <div
-        className={`${
-          t.visible ? 'animate-enter' : 'animate-leave'
-        } max-w-sm w-full bg-[#2d3150] shadow-2xl rounded-xl pointer-events-auto flex ring-1 ring-black/10 overflow-hidden`}
+        className={`${t.visible ? 'animate-enter' : 'animate-leave'
+          } max-w-sm w-full bg-[#2d3150] shadow-2xl rounded-xl pointer-events-auto flex ring-1 ring-black/10 overflow-hidden`}
       >
         <div className="flex-1 w-0 p-4">
           <div className="flex items-start">

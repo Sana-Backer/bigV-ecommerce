@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { X, Loader2, Trash2, Heart } from "lucide-react";
 import { getWishlistApi, removeWishlistItemApi, moveWishlistItemToCartApi, clearWishlistApi } from "@/services/wishlistApi";
 import { motion, AnimatePresence } from "framer-motion";
@@ -54,7 +55,7 @@ export default function WishlistDrawer({ isOpen, onClose }) {
       }
     } catch (err) {
       console.error("Failed to remove item:", err);
-      alert("Could not remove item from wishlist.");
+      toast.error("Could not remove item from wishlist.");
     } finally {
       setUpdatingItemId(null);
     }
@@ -75,7 +76,7 @@ export default function WishlistDrawer({ isOpen, onClose }) {
       }
     } catch (err) {
       console.error("Failed to move to cart:", err);
-      alert("Failed to add item to cart.");
+      toast.error("Failed to add item to cart.");
     } finally {
       setUpdatingItemId(null);
     }
