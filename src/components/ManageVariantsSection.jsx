@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { ArrowLeft, Edit, Trash2, Plus } from "lucide-react";
 import {
   getProductVariantsApi,
@@ -68,7 +69,7 @@ export default function ManageVariantsSection({
     const salePrice = variantFormData.sale_price ? parseFloat(variantFormData.sale_price) : null;
 
     if (salePrice !== null && salePrice > basePrice) {
-      alert("Sale price cannot be greater than the regular price!");
+      toast.error("Sale price cannot be greater than the regular price!");
       return;
     }
 
@@ -115,11 +116,11 @@ export default function ManageVariantsSection({
         fetchVariants(product.id);
         if (onRefreshProducts) onRefreshProducts();
       } else {
-        alert("Failed to save variant. Make sure the name is unique and sale price is valid.");
+        toast.error("Failed to save variant. Make sure the name is unique and sale price is valid.");
       }
     } catch (err) {
       console.error("Save variant failed:", err);
-      alert(err?.response?.data?.sale_price?.[0] || "Failed to save variant. Please check fields and try again.");
+      toast.error(err?.response?.data?.sale_price?.[0] || "Failed to save variant. Please check fields and try again.");
     } finally {
       setIsLoading(false);
     }

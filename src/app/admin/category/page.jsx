@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   Plus,
   Search,
@@ -24,7 +25,7 @@ import {
 export default function CategoryManagement() {
   const [viewMode, setViewMode] = useState("list"); // "list" | "add" | "edit"
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedParent, setSelectedParent] = useState("All");
   const [isLoading, setIsLoading] = useState(false);
   
@@ -107,7 +108,7 @@ export default function CategoryManagement() {
       if (viewMode === "add") {
         const response = await addCategoryApi(data, headers);
         if (response && (response.status === 201 || response.status === 200)) {
-          alert("Category created successfully!");
+          toast.success("Category created successfully!");
           console.log(response);
           
         } else {
@@ -126,7 +127,7 @@ export default function CategoryManagement() {
       } else if (viewMode === "edit" && editingCategory) {
         const response = await updateCategoryApi(editingCategory.id, data, headers);
         if (response && response.status === 200) {
-          alert("Category updated successfully!");
+          toast.success("Category updated successfully!");
         } else {
           // Fallback local update
           setCategoryList(
@@ -147,7 +148,7 @@ export default function CategoryManagement() {
       }
     } catch (error) {
       console.error("Error saving category via API:", error);
-      alert("API request failed. Saving changes locally as fallback.");
+      toast.error("API request failed. Saving changes locally as fallback.");
       // Fallback local updates
       if (viewMode === "add") {
         const newCategory = {
@@ -214,13 +215,13 @@ export default function CategoryManagement() {
       try {
         const response = await deleteCategoryApi(id);
         if (response && (response.status === 204 || response.status === 200)) {
-          alert("Category deleted successfully!");
+          toast.success("Category deleted successfully!");
         } else {
           setCategoryList(categoryList.filter((cat) => cat.id !== id));
         }
       } catch (error) {
         console.error("Failed to delete category via API:", error);
-        alert("API request failed. Deleting locally as fallback.");
+        toast.error("API request failed. Deleting locally as fallback.");
         setCategoryList(categoryList.filter((cat) => cat.id !== id));
       } finally {
         setIsLoading(false);
@@ -243,6 +244,19 @@ export default function CategoryManagement() {
 
   // Unique parents list for filter options
   const parentOptions = categoryList.filter((cat) => !cat.parent);
+
+  // Pagination Logic
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCategories = filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-8 px-2 text-slate-800">
@@ -317,8 +331,8 @@ export default function CategoryManagement() {
                   </tr>
                 </thead>
                 <tbody className="text-sm font-semibold text-slate-700 divide-y divide-slate-50">
-                  {filteredCategories.length > 0 ? (
-                    filteredCategories.map((category) => (
+                  {currentCategories.length > 0 ? (
+                    currentCategories.map((category) => (
                       <tr key={category.id} className="hover:bg-slate-50/50 transition-colors">
                         {/* Category Name & Image */}
                         <td className="py-4.5 px-6">
@@ -409,48 +423,45 @@ export default function CategoryManagement() {
             </div>
 
             {/* Pagination mirroring the screenshot */}
-            <div className="flex items-center justify-between px-6 py-4.5 border-t border-slate-50 text-xs font-bold text-slate-500">
-              <span>Showing {filteredCategories.length} of {categoryList.length} categories</span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 cursor-pointer disabled:opacity-40"
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
-                    currentPage === 1 ? "bg-[#2C3B5E] text-white" : "border border-slate-200 hover:bg-slate-50 text-slate-600"
-                  }`}
-                >
-                  1
-                </button>
-                <button
-                  onClick={() => setCurrentPage(2)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
-                    currentPage === 2 ? "bg-[#2C3B5E] text-white" : "border border-slate-200 hover:bg-slate-50 text-slate-600"
-                  }`}
-                >
-                  2
-                </button>
-                <button
-                  onClick={() => setCurrentPage(3)}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
-                    currentPage === 3 ? "bg-[#2C3B5E] text-white" : "border border-slate-200 hover:bg-slate-50 text-slate-600"
-                  }`}
-                >
-                  3
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 cursor-pointer"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+            {filteredCategories.length > 10 && (
+              <div className="flex items-center justify-between px-6 py-4.5 border-t border-slate-50 text-xs font-bold text-slate-500">
+                <span>
+                  Showing {filteredCategories.length === 0 ? 0 : indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredCategories.length)} of {filteredCategories.length} categories
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  
+                  {[...Array(totalPages || 1)].map((_, i) => {
+                    const page = i + 1;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                          currentPage === page ? "bg-[#2C3B5E] text-white" : "border border-slate-200 hover:bg-slate-50 text-slate-600"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-400 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </>
       ) : (
@@ -543,22 +554,7 @@ export default function CategoryManagement() {
                 </select>
               </div>
 
-              {/* Form Action buttons */}
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 py-3 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer text-center"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 text-sm font-bold text-white bg-[#2C3B5E] rounded-xl hover:bg-[#1E2A47] transition-colors cursor-pointer text-center shadow-md shadow-[#2C3B5E]/10"
-                >
-                  {viewMode === "add" ? "Save Category" : "Update Category"}
-                </button>
-              </div>
+
             </div>
 
             {/* Right Column: Category Banner/Image */}
@@ -607,6 +603,23 @@ export default function CategoryManagement() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Form Action buttons (Moved to bottom) */}
+            <div className="lg:col-span-2 flex gap-4 pt-2">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="flex-1 md:flex-none md:w-40 py-3 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer text-center md:ml-auto"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 md:flex-none md:w-48 py-3 text-sm font-bold text-white bg-[#2C3B5E] rounded-xl hover:bg-[#1E2A47] transition-colors cursor-pointer text-center shadow-md shadow-[#2C3B5E]/10"
+              >
+                {viewMode === "add" ? "Save Category" : "Update Category"}
+              </button>
             </div>
           </form>
         </div>

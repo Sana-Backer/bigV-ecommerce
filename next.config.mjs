@@ -2,7 +2,7 @@
 const nextConfig = {
   allowedDevOrigins: ["192.168.1.17"],
   images: {
-    domains: ['127.0.0.1', 'localhost'],
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'http',

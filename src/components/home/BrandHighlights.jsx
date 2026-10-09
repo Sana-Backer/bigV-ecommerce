@@ -415,7 +415,7 @@ const BrandHighlights = () => {
                   <div className="relative w-[220px] sm:w-[260px] lg:w-md h-[300px] sm:h-[360px] lg:h-[490px] overflow-hidden">
 
                     <Image
-                      src={item.image}
+                      src={item.image || "/placeholder.png"}
                       alt={item.title}
                       fill
                       className="object-cover"

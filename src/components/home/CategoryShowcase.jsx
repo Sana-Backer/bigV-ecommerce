@@ -387,7 +387,7 @@ const CategoryShowcase = () => {
               <div className="parallax-image absolute inset-0">
 
                 <Image
-                  src={category.banner}
+                  src={category.banner || "/placeholder.png"}
                   alt={category.title}
                   fill
                   className="object-cover scale-110"
@@ -452,7 +452,7 @@ const CategoryShowcase = () => {
                       className="relative h-[180px] sm:h-[200px] md:h-[220px] lg:h-[290px] mb-4 select-none pointer-events-none">
 
                       <Image
-                        src={product.image}
+                        src={product.image || "/placeholder.png"}
                         alt={product.name}
                         fill
                         unoptimized={true}

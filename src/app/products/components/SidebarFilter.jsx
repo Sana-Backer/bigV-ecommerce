@@ -61,8 +61,8 @@ export default function SidebarFilter({
                       {/* Custom Checkbox */}
                       <div
                         className={`w-[14px] h-[14px] flex-shrink-0 rounded-[3px] border flex items-center justify-center transition-colors duration-200 ${selectedCategory === cat
-                            ? 'bg-[#393F59] border-[#393F59]'
-                            : 'bg-transparent border-[#767676]/40'
+                          ? 'bg-[#393F59] border-[#393F59]'
+                          : 'bg-transparent border-[#767676]/40'
                           }`}
                       >
                         {selectedCategory === cat && (

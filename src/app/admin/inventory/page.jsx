@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   Box,
   TrendingUp,
@@ -18,7 +19,7 @@ import {
   ChevronRight,
   ChevronDown
 } from "lucide-react";
-import { getProductsApi } from "@/services/productsApi";
+import { getStockListApi, setStockApi } from "@/services/inventoryApi";
 import api from "@/services/serverUrl";
 import { commonAPI } from "@/services/commonAPI";
 
@@ -43,97 +44,62 @@ export default function InventoryManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Initial Mock Inventory Data matching screenshot
-  const [inventory, setInventory] = useState([
-    {
-      id: "inv-1",
-      name: "Midnight Glow Serum",
-      brand: "Skincare",
-      sku: "LUM-SRM-001",
-      image: "/product1.png",
-      quantity: 425,
-      maxCapacity: 450,
-      location: "Shelf A4, WH-1",
-      unitPrice: 90,
-      category: "Skincare"
-    },
-    {
-      id: "inv-2",
-      name: "Velvet Rose Mist",
-      brand: "Fragrance",
-      sku: "LUM-FGR-012",
-      image: "/product2.png",
-      quantity: 12,
-      maxCapacity: 150,
-      location: "Shelf B2, WH-1",
-      unitPrice: 120,
-      category: "Fragrance"
-    },
-    {
-      id: "inv-3",
-      name: "Cloud Infusion Cream",
-      brand: "Skincare",
-      sku: "LUM-SRM-688",
-      image: "/category3.png",
-      quantity: 210,
-      maxCapacity: 500,
-      location: "Shelf C1, WH-2",
-      unitPrice: 75,
-      category: "Skincare"
-    }
-  ]);
+  // Initial Inventory Data from backend
+  const [inventory, setInventory] = useState([]);
 
-  // Fetch real products from backend to merge
-  useEffect(() => {
-    const fetchRealProducts = async () => {
-      try {
-        const response = await getProductsApi();
-        if (response && response.status === 200 && response.data?.status === "success") {
-          const prods = response.data.data || [];
-          
-          // Populate unique categories dynamically
-          const uniqueCats = new Set(["All Categories"]);
-          prods.forEach(p => {
-            if (p.category?.name) uniqueCats.add(p.category.name);
-          });
-          setCategoriesList(Array.from(uniqueCats));
-
-          // Merge backend products with mock data
-          setInventory(prev => {
-            const merged = [...prev];
-            prods.forEach((prod, index) => {
-              const nameLower = prod.name.toLowerCase();
-              // Check if already exist in mock
-              if (!merged.some(m => m.name.toLowerCase() === nameLower)) {
-                // Generate a mockup stock quantity & capacity
-                const qty = index % 3 === 0 ? 8 : index % 2 === 0 ? 150 : 310;
-                const maxCap = qty < 50 ? 100 : qty < 200 ? 300 : 500;
-                const wh = index % 2 === 0 ? "WH-1" : "WH-2";
-                const row = String.fromCharCode(65 + (index % 6)); // A-F
-                const shelf = index % 5 + 1;
-                
-                merged.push({
-                  id: prod.id,
-                  name: prod.name,
-                  brand: prod.brand || "Skincare",
-                  sku: prod.sku || `LUM-PROD-${1000 + index}`,
-                  image: prod.primary_image || "/product1.png",
-                  quantity: qty,
-                  maxCapacity: maxCap,
-                  location: `Shelf ${row}${shelf}, ${wh}`,
-                  unitPrice: parseFloat(prod.base_price) || 90.00,
-                  category: prod.category?.name || "Skincare"
-                });
-              }
-            });
-            return merged;
-          });
+  // Fetch real inventory from backend
+  const fetchInventory = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getStockListApi("");
+      
+      if (response && response.status === 200) {
+        // Handle pagination structure robustly
+        let prods = [];
+        if (Array.isArray(response.data)) {
+          prods = response.data;
+        } else if (response.data?.results && Array.isArray(response.data.results)) {
+          prods = response.data.results;
+        } else if (response.data?.data && Array.isArray(response.data.data)) {
+          prods = response.data.data;
+        } else if (response.data?.data?.results && Array.isArray(response.data.data.results)) {
+          prods = response.data.data.results;
         }
-      } catch (err) {
-        console.error("Failed to load products for inventory sync:", err);
+        
+        // Populate unique categories dynamically
+        const uniqueCats = new Set(["All Categories"]);
+        prods.forEach(p => {
+          if (p.category) uniqueCats.add(p.category);
+        });
+        setCategoriesList(Array.from(uniqueCats));
+
+        // Map backend schema to frontend state
+        const mappedInventory = prods.map((prod, index) => {
+          return {
+            id: prod.variant_id || prod.product_id, // Unique ID for key
+            product_id: prod.product_id,
+            variant_id: prod.variant_id,
+            name: prod.name,
+            sku: prod.sku,
+            quantity: prod.stock_quantity || 0,
+            maxCapacity: prod.reorder_quantity || prod.low_stock_threshold || 100,
+            unitPrice: parseFloat(prod.unit_price) || 0,
+            category: prod.category || "Uncategorized",
+            status: prod.status
+          };
+        });
+        setInventory(mappedInventory);
       }
-    };
-    fetchRealProducts();
+    } catch (err) {
+      console.error("Failed to load inventory:", err);
+      toast.error("Failed to load inventory from server");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInventory();
   }, []);
 
   // Filter Logic
@@ -180,27 +146,35 @@ export default function InventoryManagement() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Local state update
-      setInventory(prev => 
-        prev.map(item => 
-          item.id === selectedItem.id 
-            ? {
-                ...item,
-                quantity: parseInt(editFormData.quantity) || 0,
-                location: editFormData.location,
-                unitPrice: parseFloat(editFormData.unitPrice) || 0
-              }
-            : item
-        )
-      );
-      
-      // Close modal
-      setIsEditModalOpen(false);
-      setSelectedItem(null);
-      alert("Inventory record updated successfully.");
+      const reqHeader = {
+        "Content-Type": "application/json"
+      };
+
+      const payload = {
+        quantity: parseInt(editFormData.quantity) || 0,
+        note: "Manual update from admin panel"
+      };
+
+      if (selectedItem.variant_id) {
+        payload.variant_id = selectedItem.variant_id;
+      } else {
+        payload.product_id = selectedItem.product_id;
+      }
+
+      const response = await setStockApi(payload, reqHeader);
+
+      if (response && (response.status === 200 || response.status === 201)) {
+        toast.success("Inventory record updated successfully.");
+        // Refresh inventory from server to ensure accuracy
+        await fetchInventory();
+        setIsEditModalOpen(false);
+        setSelectedItem(null);
+      } else {
+        toast.error("Failed to update inventory.");
+      }
     } catch (err) {
       console.error(err);
-      alert("Failed to update inventory.");
+      toast.error("Failed to update inventory.");
     } finally {
       setIsLoading(false);
     }
@@ -399,7 +373,6 @@ export default function InventoryManagement() {
                 <th className="py-4.5 px-6">Product</th>
                 <th className="py-4.5 px-6">SKU</th>
                 <th className="py-4.5 px-6">Stock Level</th>
-                <th className="py-4.5 px-6">Location</th>
                 <th className="py-4.5 px-6">Value</th>
                 <th className="py-4.5 px-6">Status</th>
                 <th className="py-4.5 px-6 text-center">Actions</th>
@@ -414,16 +387,11 @@ export default function InventoryManagement() {
 
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                      {/* Product with Image */}
+                      {/* Product without Image */}
                       <td className="py-4.5 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 bg-slate-50 shrink-0">
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-slate-800 font-bold">{item.name}</span>
-                            <span className="text-[10px] text-slate-400 font-medium">{item.category}</span>
-                          </div>
+                        <div className="flex flex-col">
+                          <span className="text-slate-800 font-bold">{item.name}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{item.category}</span>
                         </div>
                       </td>
 
@@ -438,7 +406,7 @@ export default function InventoryManagement() {
                           <div className="flex justify-between text-[10px] font-bold">
                             <span className="text-slate-700">{item.quantity} units</span>
                             <span className={isOut ? "text-rose-500" : isLow ? "text-rose-400" : "text-slate-400"}>
-                              {percentage}%
+                              Threshold: {item.maxCapacity}
                             </span>
                           </div>
                           <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -454,18 +422,12 @@ export default function InventoryManagement() {
                         </div>
                       </td>
 
-                      {/* Warehouse Shelf Location */}
-                      <td className="py-4.5 px-6">
-                        <span className="text-slate-600 font-bold text-xs">{item.location}</span>
-                      </td>
-
                       {/* Value calculation */}
                       <td className="py-4.5 px-6">
                         <div className="flex flex-col">
                           <span className="text-slate-800 font-bold">
-                            ₹{(item.quantity * item.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            ₹{item.unitPrice}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-medium">₹{item.unitPrice} / unit</span>
                         </div>
                       </td>
 
@@ -507,7 +469,7 @@ export default function InventoryManagement() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-12 text-center text-slate-400">
+                  <td colSpan="6" className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center gap-2">
                       <AlertTriangle className="w-8 h-8 text-slate-300" />
                       <span className="font-bold">No inventory items found</span>
@@ -616,19 +578,6 @@ export default function InventoryManagement() {
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
                   />
                 </div>
-              </div>
-
-              {/* Shelf Location */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-500">Warehouse Location</label>
-                <input
-                  type="text"
-                  required
-                  value={editFormData.location}
-                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
-                  placeholder="e.g. Shelf A4, WH-1"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
-                />
               </div>
 
               {/* Action Buttons */}

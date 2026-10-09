@@ -57,12 +57,14 @@ export default function ProductCard({
 
       {/* Centered Product Image */}
       <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt={name}
-          className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 ease-out group-hover:scale-[1.05]"
-        />
+        {image ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={image}
+            alt={name}
+            className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+          />
+        ) : null}
       </div>
 
       {/* Bottom Footer - Title and Price */}

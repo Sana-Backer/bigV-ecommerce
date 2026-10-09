@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   Users,
   UserCheck,
@@ -54,10 +55,9 @@ export default function CustomersManagement() {
             const initials = `${u.first_name?.[0] || ""}${u.last_name?.[0] || ""}`.toUpperCase() || u.email[0].toUpperCase();
             
             // Assign segment, orders, LTV logically based on user details
-            const isStaff = u.role === "admin" || u.role === "staff" || u.role === "manager";
-            const orders = isStaff ? (index === 0 ? 24 : 12) : (index % 2 === 0 ? 8 : 1);
-            const ltv = isStaff ? (index === 0 ? 120000 : 45000) : (index % 2 === 0 ? 22400 : 8500);
-            const segment = index === 0 ? "VIP" : (index % 2 === 0 ? "LOYAL" : "NEW");
+            const orders = u.orders_count !== undefined ? u.orders_count : "-";
+            const ltv = u.ltv !== undefined ? u.ltv : "-";
+            const segment = u.segment || "-";
 
             return {
               id: u.id,
@@ -153,15 +153,15 @@ export default function CustomersManagement() {
               : c
           )
         );
-        alert("Customer updated successfully!");
+        toast.success("Customer updated successfully!");
       } else {
-        alert("Failed to update user on server.");
+        toast.error("Failed to update user on server.");
       }
       setIsEditing(false);
       setSelectedCustomer(null);
     } catch (err) {
       console.error("Failed to edit user:", err);
-      alert("An error occurred during updating.");
+      toast.error("An error occurred during updating.");
     } finally {
       setIsLoading(false);
     }
@@ -235,7 +235,7 @@ export default function CustomersManagement() {
               Total Customers
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              12,482
+              {customers.length > 0 ? customers.length.toLocaleString() : "-"}
             </span>
           </div>
         </div>
@@ -255,7 +255,7 @@ export default function CustomersManagement() {
               Active Customers
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              8,920
+              {customers.length > 0 ? customers.filter(c => c.status === "Active").length.toLocaleString() : "-"}
             </span>
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function CustomersManagement() {
               Avg. Lifetime Value
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              ₹12,500
+              -
             </span>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function CustomersManagement() {
               New Registrations
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              450<span className="text-xs text-slate-400 font-medium"> / mo</span>
+              -<span className="text-xs text-slate-400 font-medium"> / mo</span>
             </span>
           </div>
         </div>
@@ -372,7 +372,7 @@ export default function CustomersManagement() {
 
                     {/* LTV */}
                     <td className="py-4.5 px-6">
-                      <span className="text-slate-800 font-bold">₹{c.ltv.toLocaleString()}</span>
+                      <span className="text-slate-800 font-bold">{c.ltv !== "-" ? `₹${c.ltv.toLocaleString()}` : "-"}</span>
                     </td>
 
                     {/* Last Purchase */}
