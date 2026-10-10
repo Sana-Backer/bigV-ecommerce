@@ -28,9 +28,9 @@ const Footer = () => {
         // 1. Subtle parallax effect on the banner image
         gsap.fromTo(
           bannerRef.current,
-          { yPercent: isMobile ? -2 : -8 },
+          { yPercent: isMobile ? -10 : (isTablet ? -15 : -25) },
           {
-            yPercent: isMobile ? 2 : (isTablet ? 6 : 14),
+            yPercent: 0,
             ease: "none",
             scrollTrigger: {
               trigger: footerRef.current,
@@ -68,11 +68,11 @@ const Footer = () => {
       <div className="relative w-full h-[460px] md:h-[500px] lg:h-[600px] overflow-hidden">
         <div
           ref={bannerRef}
-          className="absolute inset-0 w-full h-[116%] -top-[8%]"
+          className="absolute inset-0 w-full h-[125%] top-0"
         >
           <Image
             src="/footer-banner.png"
-            alt="LUMORA Banner"
+            alt="BIGSVENTURE Banner"
             fill
             className="object-cover"
             priority
@@ -135,7 +135,6 @@ const Footer = () => {
                 <ul className="flex flex-col gap-4 text-sm text-[#393F59] font-medium">
                   <li><Link href="/products" className="hover:text-black transition-colors duration-200">Shop</Link></li>
                   <li><Link href="/about-us" className="hover:text-black transition-colors duration-200">About</Link></li>
-                  <li><Link href="#" className="hover:text-black transition-colors duration-200">Gallery</Link></li>
                   <li><Link href="/login" className="hover:text-black transition-colors duration-200">Sign Up/Login</Link></li>
                 </ul>
               </div>
@@ -184,9 +183,9 @@ const Footer = () => {
 
           {/* LARGE LOGO */}
           <div className="w-full mt-1 md:mt-4 lg:mt-2">
-            <h2 className="text-neutral-800 border-t border-neutral-300/40 text-[16vw] sm:text-[12vw] lg:text-[14vw] xl:text-[12rem] text-center pt-8 sm:pt-12 font-bold tracking-[0.1em] uppercase leading-none w-full flex justify-center">
-              LUMORA
-            </h2>
+            <h2 className="text-neutral-800 border-t border-neutral-300/40 text-[2rem] sm:text-[2rem] lg:text-[9vw] xl:text-[7rem] text-center pt-8 sm:pt-12 font-bold tracking-[0.1em] uppercase leading-none w-full flex justify-center">
+              BIG S VENTURE
+            </h2> 
           </div>
 
           {/* Brand & Copyright Footer Bar */}
@@ -196,7 +195,7 @@ const Footer = () => {
                 Clean, Conscious, Clinical Skincare! Honest products that truly work.
               </p>
               <p className="text-neutral-400 mt-2 text-[10px]">
-                &copy; {new Date().getFullYear()} LUMORA. All Rights Reserved.
+                &copy; {new Date().getFullYear()} BIGSVENTURE. All Rights Reserved.
               </p>
             </div>
 

@@ -247,7 +247,7 @@ const BrandHighlights = () => {
   return (
     <section className=" py-20 lg:py-25 overflow-hidden">
 
-      <div className="max-w-[1400px]">
+      <div className="mx-auto">
         <div className="pb-16">
           {/* TITLE */}
           <div
@@ -398,7 +398,7 @@ const BrandHighlights = () => {
         {/* KITCHEN ESSENTIALS */}
         <div className="flex flex-col lg:flex-row justify-around gap-2 lg:gap-1 items-center pt-24 lg:pt-28 overflow-hidden">
           {/* LEFT IMAGE COLUMN */}
-          <div 
+          <div
             className="h-[450px] lg:h-[470px] overflow-y-auto no-scrollbar w-full lg:w-1/2 px-4 lg:pr-4 cursor-none"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -468,8 +468,8 @@ const BrandHighlights = () => {
       </div>
 
       {/* CUSTOM CURSOR */}
-      <div 
-        ref={cursorRef} 
+      <div
+        ref={cursorRef}
         className="fixed top-0 left-0 w-24 h-24 bg-white/95 backdrop-blur-sm rounded-full pointer-events-none z-[100] flex items-center justify-center opacity-0 scale-0 shadow-lg"
       >
         <span className="text-[#393F59] text-xs uppercase tracking-[0.15em] font-medium">Scroll</span>

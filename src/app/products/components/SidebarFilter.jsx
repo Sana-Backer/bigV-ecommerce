@@ -13,10 +13,16 @@ export default function SidebarFilter({
   setPriceRange,
   sortBy,
   setSortBy,
+  brands = [],
+  selectedBrand = "",
+  setSelectedBrand,
+  sortOptions = [],
   theme
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(true);
+  const [isBrandsOpen, setIsBrandsOpen] = useState(true);
+  const [isSortOpen, setIsSortOpen] = useState(true);
 
   const FilterContent = () => (
     <div className="w-full font-sans pr-4">
@@ -82,20 +88,120 @@ export default function SidebarFilter({
           </AnimatePresence>
         </div>
 
-        {/* Type Section 1 */}
-        <div className="border-b border-[#e5e7eb] py-3">
-          <div className="flex justify-between items-center cursor-pointer group">
-            <h3 className="text-[14px] font-medium uppercase tracking-wider text-[#767676] group-hover:text-[#393F59] transition-colors">Type</h3>
-            <ChevronRight size={16} className="text-[#767676] group-hover:text-[#393F59] transition-colors" strokeWidth={1.5} />
+        {/* Brands Section */}
+        <div className="border-b border-[#e5e7eb] pb-4">
+          <div
+            className="flex justify-between items-center py-3 cursor-pointer group"
+            onClick={() => setIsBrandsOpen(!isBrandsOpen)}
+          >
+            <h3 className="text-[14px] font-medium uppercase tracking-wider text-[#767676] group-hover:text-[#393F59] transition-colors">Brands</h3>
+            <motion.div
+              animate={{ rotate: isBrandsOpen ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronDown size={16} className="text-[#767676] group-hover:text-[#393F59] transition-colors" strokeWidth={1.5} />
+            </motion.div>
           </div>
+
+          <AnimatePresence>
+            {isBrandsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="flex flex-col gap-3 pt-1">
+                  {brands.map((brandObj, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between cursor-pointer group"
+                      onClick={() => {
+                        if (setSelectedBrand) {
+                          setSelectedBrand(selectedBrand === brandObj.name ? "" : brandObj.name);
+                        }
+                      }}
+                    >
+                      <div
+                        className={`w-[14px] h-[14px] flex-shrink-0 rounded-[3px] border flex items-center justify-center transition-colors duration-200 ${selectedBrand === brandObj.name
+                          ? 'bg-[#393F59] border-[#393F59]'
+                          : 'bg-transparent border-[#767676]/40'
+                          }`}
+                      >
+                        {selectedBrand === brandObj.name && (
+                          <svg width="8" height="6" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-[13px] font-medium uppercase tracking-wide text-[#393F59] text-right">
+                        {brandObj.name} ({brandObj.count})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Type Section 2 */}
-        <div className="border-b border-[#e5e7eb] py-3">
-          <div className="flex justify-between items-center cursor-pointer group">
-            <h3 className="text-[14px] font-medium uppercase tracking-wider text-[#767676] group-hover:text-[#393F59] transition-colors">Type</h3>
-            <ChevronRight size={16} className="text-[#767676] group-hover:text-[#393F59] transition-colors" strokeWidth={1.5} />
+        {/* Sort Section */}
+        <div className="border-b border-[#e5e7eb] pb-4">
+          <div
+            className="flex justify-between items-center py-3 cursor-pointer group"
+            onClick={() => setIsSortOpen(!isSortOpen)}
+          >
+            <h3 className="text-[14px] font-medium uppercase tracking-wider text-[#767676] group-hover:text-[#393F59] transition-colors">Sort By</h3>
+            <motion.div
+              animate={{ rotate: isSortOpen ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ChevronDown size={16} className="text-[#767676] group-hover:text-[#393F59] transition-colors" strokeWidth={1.5} />
+            </motion.div>
           </div>
+
+          <AnimatePresence>
+            {isSortOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="flex flex-col gap-3 pt-1">
+                  {sortOptions.map((opt, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between cursor-pointer group"
+                      onClick={() => {
+                        if (setSortBy) {
+                          setSortBy(sortBy === opt.value ? "" : opt.value);
+                        }
+                      }}
+                    >
+                      <div
+                        className={`w-[14px] h-[14px] flex-shrink-0 rounded-[3px] border flex items-center justify-center transition-colors duration-200 ${sortBy === opt.value
+                          ? 'bg-[#393F59] border-[#393F59]'
+                          : 'bg-transparent border-[#767676]/40'
+                          }`}
+                      >
+                        {sortBy === opt.value && (
+                          <svg width="8" height="6" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-[13px] font-medium uppercase tracking-wide text-[#393F59] text-right">
+                        {opt.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

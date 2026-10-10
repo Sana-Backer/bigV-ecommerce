@@ -30,6 +30,7 @@ export default function AdminDashboard() {
         const token = typeof window !== 'undefined' ? sessionStorage.getItem("token") : null;
         const reqHeader = token ? { Authorization: `Token ${token}` } : {};
         const rangeMap = {
+          "Today": "today",
           "Last 7 Days": "7d",
           "Last 30 Days": "30d",
           "Last 90 Days": "90d",
@@ -156,7 +157,7 @@ export default function AdminDashboard() {
             </button>
             {isPeriodDropdownOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
-                {["Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 1 Year"].map((period) => (
+                {["Today", "Last 7 Days", "Last 30 Days", "Last 90 Days", "Last 1 Year"].map((period) => (
                   <button
                     key={period}
                     onClick={() => {

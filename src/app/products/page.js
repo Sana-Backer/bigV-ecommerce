@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import ProductHero from "./components/ProductHero";
 import ProductLayout from "./components/ProductLayout";
 import SidebarFilter from "./components/SidebarFilter";
 import ProductGrid from "./components/ProductGrid";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
-import { getProductsApi, getProductsByCategoryApi, getFeaturedProductsApi } from "@/services/productsApi";
+import { getProductsApi, getFeaturedProductsApi, getProductFilterOptionsApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
 
 import { toast } from "react-hot-toast";
@@ -18,10 +19,17 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categoriesList, setCategoriesList] = useState([]);
 
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get('category') || "";
+  
   // Filter States
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedBrand, setSelectedBrand] = useState("");
   const [priceRange, setPriceRange] = useState([0, 1000]);
-  const [sortBy, setSortBy] = useState("featured");
+  const [sortBy, setSortBy] = useState(""); // default sort from backend if empty
+
+  const [brands, setBrands] = useState([]);
+  const [sortOptions, setSortOptions] = useState([]);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -39,39 +47,77 @@ export default function ProductsPage() {
     fetchCategories();
   }, []);
 
-  // Fetch products
+  // Fetch products and filters
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        let res;
-        if (selectedCategory) {
-          const slug = selectedCategory.replace(/ /g, '-');
-          res = await getProductsByCategoryApi(slug);
-        } else {
-          res = await getProductsApi();
+        const queryParams = new URLSearchParams();
+        if (selectedCategory) queryParams.append('category', selectedCategory.replace(/ /g, '-'));
+        if (selectedBrand) queryParams.append('brand', selectedBrand);
+        if (sortBy) queryParams.append('ordering', sortBy);
+
+        const queryStr = queryParams.toString();
+
+        // 1. Fetch filter options
+        try {
+          const filterRes = await getProductFilterOptionsApi(queryStr);
+          if (filterRes.status === 200) {
+            const data = filterRes.data?.data || filterRes.data;
+            if (data.brands) setBrands(data.brands);
+            if (data.sort_options) setSortOptions(data.sort_options);
+            // Optionally update categoriesList if needed from filters, but keeping initial fetch is fine too.
+          }
+        } catch (err) {
+          console.error("Failed to fetch filters", err);
         }
 
+        // 2. Fetch products
+        let res = await getProductsApi(queryStr);
         if (res.status === 200) {
-          let rawProducts = [];
-          if (selectedCategory) {
-            rawProducts = res.data?.data?.products || [];
-          } else {
-            rawProducts = res.data?.data || [];
-          }
-
-          // Map product.category to a lowercase string so ProductGrid groups correctly
+          const rawProducts = res.data?.data?.results || res.data?.data || [];
+          
           const formattedProducts = rawProducts.map(p => ({
             ...p,
             category: typeof p.category === 'object' ? p.category?.name?.toLowerCase() : p.category?.toLowerCase() || 'other',
-            image: p.primary_image || p.image // Ensure image prop works if ProductCard expects it
+            image: p.primary_image || p.image
           }));
 
-          if (!selectedCategory) {
+          // If sort by featured is selected, show only featured products
+          if (sortBy === 'featured') {
             try {
               const featRes = await getFeaturedProductsApi();
               if (featRes.status === 200) {
-                const featRaw = featRes.data?.data || featRes.data || [];
+                const featRaw = featRes.data?.data?.results || featRes.data?.data || [];
+                let featFormatted = featRaw.map(p => ({
+                  ...p,
+                  category: 'featured',
+                  image: p.primary_image || p.image
+                }));
+                
+                if (selectedCategory) {
+                  featFormatted = featFormatted.filter(p => p.category_name?.toLowerCase() === selectedCategory.toLowerCase() || (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase()));
+                }
+                if (selectedBrand) {
+                  featFormatted = featFormatted.filter(p => p.brand?.name === selectedBrand || p.brand === selectedBrand);
+                }
+                
+                setProducts(featFormatted);
+                return;
+              }
+            } catch (featErr) {
+               console.error("Failed to fetch featured products", featErr);
+            }
+            setProducts([]);
+            return;
+          }
+
+          // If no filters are applied, optionally fetch and prepend featured products
+          if (!selectedCategory && !selectedBrand && !sortBy) {
+            try {
+              const featRes = await getFeaturedProductsApi();
+              if (featRes.status === 200) {
+                const featRaw = featRes.data?.data?.results || featRes.data?.data || [];
                 const featFormatted = featRaw.map(p => ({
                   ...p,
                   category: 'featured',
@@ -93,8 +139,8 @@ export default function ProductsPage() {
         setIsLoading(false);
       }
     };
-    fetchProducts();
-  }, [selectedCategory]);
+    fetchData();
+  }, [selectedCategory, selectedBrand, sortBy]);
 
   // Cart placeholder handler
   const handleAddToCart = (product) => {
@@ -143,10 +189,14 @@ export default function ProductsPage() {
             categories={categoriesList.length > 0 ? categoriesList : ["beauty care", "kitchen essential", "powders"]}
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
-            priceRange={priceRange}
-            setPriceRange={setPriceRange}
+            brands={brands}
+            selectedBrand={selectedBrand}
+            setSelectedBrand={setSelectedBrand}
+            sortOptions={sortOptions}
             sortBy={sortBy}
             setSortBy={setSortBy}
+            priceRange={priceRange}
+            setPriceRange={setPriceRange}
           />
         }
       >

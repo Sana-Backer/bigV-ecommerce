@@ -97,7 +97,7 @@ function LoginContent() {
       <div className="hidden lg:block lg:w-1/2 relative bg-[#2C332E]">
         <img
           src="/skincare-hero.png"
-          alt="Lumora Skincare"
+          alt="BIGSVENTURE Skincare"
           className="absolute inset-0 w-full h-full object-cover opacity-85 blend-luminosity"
         />
         {/* Subtle Dark Gold Gradient Overlay */}
@@ -106,7 +106,7 @@ function LoginContent() {
         <div className="absolute bottom-16 left-16 right-16 text-white z-10">
           <Link href="/">
             <span className="text-sm font-semibold tracking-[0.4em] text-[#E0D8C3] uppercase mb-4 block">
-              Lumora Skincare
+              BIGSVENTURE Skincare
             </span>
           </Link>
           <h2 className="text-4xl xl:text-5xl font-normal leading-tight font-serif text-[#FBF9F6] mb-6">
@@ -131,7 +131,7 @@ function LoginContent() {
           </Link>
           
           <h1 className="text-xl font-normal tracking-[0.2em] text-[#2C332E] font-serif">
-            LUMORA
+            BIGSVENTURE
           </h1>
         </div>
 
@@ -254,7 +254,7 @@ function LoginContent() {
           {/* Switch to Register */}
           <div className="mt-8 text-center">
             <p className="text-xs text-[#5A635B] font-medium font-actor">
-              New to Lumora?{" "}
+              New to BIGSVENTURE?{" "}
               <Link
                 href={`/register?redirect=${encodeURIComponent(redirectPath)}`}
                 className="text-[#738374] hover:text-black font-bold underline decoration-dotted transition-colors"
@@ -267,7 +267,7 @@ function LoginContent() {
 
         {/* Footer Copy */}
         <p className="text-center text-[10px] text-[#A8B2A9] font-medium tracking-wide">
-          &copy; {new Date().getFullYear()} Lumora. All rights reserved. &bull; Secure Connection.
+          &copy; {new Date().getFullYear()} BIGSVENTURE. All rights reserved. &bull; Secure Connection.
         </p>
       </div>
     </div>

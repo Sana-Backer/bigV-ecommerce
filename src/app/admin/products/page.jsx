@@ -55,9 +55,10 @@ export default function AdminProducts() {
     stock: "0",
     category: "",
     isActive: true,
+    isFeatured: false,
     about_title: "",
     about_heading: "",
-    recommended_for: "",
+    recommended_for: "",  
     good_to_know: "",
     ingredients_title: "",
     ingredients: "",
@@ -238,6 +239,7 @@ export default function AdminProducts() {
       stock: "0",
       category: categoriesList[0]?.id || "",
       isActive: true,
+      isFeatured: false,
       about_title: "",
       about_heading: "",
       recommended_for: "",
@@ -287,6 +289,7 @@ export default function AdminProducts() {
           stock: stockQty,
           category: prodDetail.category ? prodDetail.category.id : "",
           isActive: prodDetail.is_active,
+          isFeatured: prodDetail.is_featured || false,
           about_title: prodDetail.about_title || "",
           about_heading: prodDetail.about_heading || "",
           recommended_for: Array.isArray(prodDetail.recommended_for) ? prodDetail.recommended_for.join(", ") : "",
@@ -420,7 +423,7 @@ export default function AdminProducts() {
       short_description: formData.description ? formData.description.slice(0, 150) : "",
       base_price: basePrice.toFixed(2),
       sale_price: null,
-      is_featured: false,
+      is_featured: formData.isFeatured || false,
       is_active: formData.isActive,
       about_title: formData.about_title,
       about_heading: formData.about_heading,
@@ -733,6 +736,21 @@ export default function AdminProducts() {
                   onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm outline-none transition-all focus:border-[#553C9A] focus:ring-1 focus:ring-[#553C9A] font-medium"
                 />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <label className="text-sm font-bold text-slate-700">Featured Product</label>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, isFeatured: !prev.isFeatured }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.isFeatured ? "bg-[#553C9A]" : "bg-slate-200"
+                    }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isFeatured ? "translate-x-5" : "translate-x-0"
+                      }`}
+                  />
+                </button>
               </div>
             </div>
                 {/* Price  */}
