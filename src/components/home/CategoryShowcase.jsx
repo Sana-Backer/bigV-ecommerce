@@ -16,6 +16,7 @@ const categories = [
   {
     title: "Powder",
     subtitle: "Products",
+    slug: "powder",
     banner: "/category3.png",
     bgColor: "bg-white",
     products: [],
@@ -23,6 +24,7 @@ const categories = [
   {
     title: "Beauty",
     subtitle: "Products",
+    slug: "beauty",
     banner: "/category1.jpg",
     bgColor: "bg-[#F0D4D0]",
     products: [],
@@ -31,6 +33,7 @@ const categories = [
   {
     title: "Kitchen",
     subtitle: "Products",
+    slug: "kitchen",
     banner: "/category2.jpg",
     bgColor: "bg-[#E6DCCF]",
     products: [],
@@ -52,15 +55,21 @@ const CategoryShowcase = () => {
             const res = await getProductsByCategoryApi(slugs[i]);
             if (res && res.status === 200) {
               const data = res.data?.data || res.data;
-              if (data && data.products && data.products.length > 0) {
-                updatedCategories[i].products = data.products.map(p => ({
-                  id: p.id,
-                  image: p.primary_image 
-                    ? (p.primary_image.startsWith('http') ? p.primary_image : (BASEURL.endsWith('/') ? BASEURL.slice(0, -1) : BASEURL) + p.primary_image) 
-                    : "/product1.png",
-                  name: p.name,
-                  price: `₹${p.effective_price || p.base_price || 0}`
-                }));
+              if (data) {
+                if (data.category && data.category.image) {
+                  updatedCategories[i].banner = data.category.image;
+                }
+                if (data.products && data.products.length > 0) {
+                  updatedCategories[i].products = data.products.map(p => ({
+                    id: p.id,
+                    image: p.primary_image 
+                      ? (p.primary_image.startsWith('http') ? p.primary_image : (BASEURL.endsWith('/') ? BASEURL.slice(0, -1) : BASEURL) + p.primary_image) 
+                      : "/product1.png",
+                    name: p.name,
+                    price: `₹${p.effective_price || p.base_price || 0}`,
+                    is_featured: p.is_featured
+                  }));
+                }
               }
             }
           } catch (err) {
@@ -419,9 +428,9 @@ const CategoryShowcase = () => {
                 </div>
 
                 {/* BUTTON */}
-                <button className=" w-11 h-11 rounded-full bg-[#2d3150] text-white flex items-center justify-center transition-all duration-300 hover:scale-105 ">
+                <Link href={`/products?category=${category.slug}`} className=" w-11 h-11 rounded-full bg-[#2d3150] text-white flex items-center justify-center transition-all duration-300 hover:scale-105 ">
                   <ArrowRight className="w-5 h-5 stroke-[2.5]" />
-                </button>
+                </Link>
 
               </div>
 
@@ -437,8 +446,8 @@ const CategoryShowcase = () => {
                     {/* TOP */}
                     <div className="mb-3 flex items-center justify-between">
 
-                      <span className=" text-[8px] sm:text-[11px] bg-[#ffffff] px-2 py-[4px] rounded-full text-[#2d3150] tracking-wide">
-                        PURE BRILLIANCE
+                      <span className={`text-[8px] sm:text-[11px] bg-[#ffffff] px-2 py-[4px] rounded-full text-[#2d3150] tracking-wide ${product.is_featured ? '' : 'invisible'}`}>
+                        FEATURED
                       </span>
 
                       {/* <span className="text-[#21232b] text-xl">

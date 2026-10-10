@@ -5,8 +5,8 @@ export const addProductApi = async (reqBody) => {
     return await commonAPI("POST", `${api}/products/`, reqBody);
 };
 
-export const getProductsApi = async () => {
-    return await commonAPI("GET", `${api}/products/`, "");
+export const getProductsApi = async (query = "") => {
+    return await commonAPI("GET", `${api}/products/${query ? `?${query}` : ''}`, "");
 };
 
 export const getProductDetailApi = async (id) => {
@@ -17,12 +17,16 @@ export const getFeaturedProductsApi = async () => {
     return await commonAPI("GET", `${api}/products/featured/`, "");
 };
 
-export const getProductsByCategoryApi = async (slug) => {
-    return await commonAPI("GET", `${api}/products/by-category/${slug}/`, "");
+export const getProductsByCategoryApi = async (slug, query = "") => {
+    return await commonAPI("GET", `${api}/products/by-category/${slug}/${query ? `?${query}` : ''}`, "");
 };
 
 export const searchProductsApi = async (searchQuery) => {
     return await commonAPI("GET", `${api}/products/search/?search=${encodeURIComponent(searchQuery)}`, "");
+};
+
+export const getProductFilterOptionsApi = async (query = "") => {
+    return await commonAPI("GET", `${api}/products/filters/${query ? `?${query}` : ''}`, "");
 };
 
 export const updateProductApi = async (id, reqBody) => {

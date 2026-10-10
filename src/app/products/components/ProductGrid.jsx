@@ -5,16 +5,13 @@ import ProductCard from "./ProductCard";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 const getCategoryTitle = (category) => {
-  switch (category?.toLowerCase()) {
-    case "beauty care":
-      return "Beauty";
-    case "kitchen essential":
-      return "Kitchen";
-    case "powders":
-      return "Powder";
-    default:
-      return "Other";
-  }
+  if (!category || category.toLowerCase() === "other") return "Other";
+  
+  // Return the actual category name capitalized (e.g., "kitchen" -> "Kitchen", "beauty care" -> "Beauty Care")
+  return category
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 const getCategoryDescription = (category) => {
@@ -89,12 +86,19 @@ export default function ProductGrid({
   }, {});
 
   // Maintain the order of categories as they appear in the original list if possible
-  const categoryOrder = ["featured", "beauty care", "kitchen essential", "powders", "other"];
+  const categoryOrder = ["beauty care", "kitchen essential", "powders", "other", "featured"];
   const sortedCategories = Object.keys(groupedProducts).sort(
     (a, b) => {
-      const indexA = categoryOrder.indexOf(a);
-      const indexB = categoryOrder.indexOf(b);
-      // If a category isn't in the list, put it at the end
+      const isAFeatured = a.toLowerCase() === "featured";
+      const isBFeatured = b.toLowerCase() === "featured";
+      
+      if (isAFeatured && !isBFeatured) return 1;
+      if (!isAFeatured && isBFeatured) return -1;
+
+      const indexA = categoryOrder.findIndex(cat => cat.toLowerCase() === a.toLowerCase());
+      const indexB = categoryOrder.findIndex(cat => cat.toLowerCase() === b.toLowerCase());
+      
+      // If a category isn't in the list, put it at the end (but before featured)
       if (indexA === -1 && indexB === -1) return a.localeCompare(b);
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;

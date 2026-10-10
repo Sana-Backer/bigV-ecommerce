@@ -26,13 +26,14 @@ export default function AnalyticsPage() {
         const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : null;
         const reqHeader = token ? { Authorization: `Token ${token}` } : {};
 
-        let period = "daily";
+        let period = "weekly";
         const toDate = new Date();
         const fromDate = new Date();
-        if (selectedRange === "7d") { fromDate.setDate(toDate.getDate() - 7); period = "daily"; }
-        else if (selectedRange === "30d") { fromDate.setDate(toDate.getDate() - 30); period = "daily"; }
-        else if (selectedRange === "90d") { fromDate.setDate(toDate.getDate() - 90); period = "weekly"; }
-        else if (selectedRange === "1y") { fromDate.setFullYear(toDate.getFullYear() - 1); period = "monthly"; }
+        if (selectedRange === "today") { period = "today"; }
+        else if (selectedRange === "7d") { fromDate.setDate(toDate.getDate() - 7); period = "7d"; }
+        else if (selectedRange === "30d") { fromDate.setDate(toDate.getDate() - 30); period = "monthly"; }
+        else if (selectedRange === "90d") { fromDate.setDate(toDate.getDate() - 90); period = "90d"; }
+        else if (selectedRange === "1y") { fromDate.setFullYear(toDate.getFullYear() - 1); period = "yearly"; }
 
         const dateFromStr = fromDate.toISOString().split("T")[0];
         const dateToStr = toDate.toISOString().split("T")[0];
@@ -51,7 +52,7 @@ export default function AnalyticsPage() {
         if (revRes.status === "fulfilled" && revRes.value?.status === 200) {
           const raw = revRes.value.data?.data || revRes.value.data;
           if (raw && raw.labels) {
-            setRevenueData(raw.labels.map((l, i) => ({ label: l, revenue: raw.revenue?.[i] || 0 })));
+            setRevenueData(raw.labels.map((l, i) => ({ label: l, revenue: Number(raw.revenue?.[i]) || 0 })));
           } else {
             setRevenueData([]);
           }
@@ -59,13 +60,13 @@ export default function AnalyticsPage() {
 
         if (catRes.status === "fulfilled" && catRes.value?.status === 200) {
           const raw = catRes.value.data?.data || catRes.value.data;
-          setCategoryData(Array.isArray(raw) ? raw : []);
+          setCategoryData(Array.isArray(raw) ? raw.map(item => ({ ...item, revenue: Number(item.revenue) || 0 })) : []);
         } else { setCategoryData([]); }
 
         if (custRes.status === "fulfilled" && custRes.value?.status === 200) {
           const raw = custRes.value.data?.data || custRes.value.data;
           if (raw && raw.labels) {
-            setCustomerData(raw.labels.map((l, i) => ({ label: l, new_customers: raw.new_customers?.[i] || 0 })));
+            setCustomerData(raw.labels.map((l, i) => ({ label: l, new_customers: Number(raw.new_customers?.[i]) || 0 })));
           } else {
             setCustomerData([]);
           }
@@ -74,7 +75,7 @@ export default function AnalyticsPage() {
         if (aovRes.status === "fulfilled" && aovRes.value?.status === 200) {
           const raw = aovRes.value.data?.data || aovRes.value.data;
           if (raw && raw.labels) {
-            setAovData(raw.labels.map((l, i) => ({ label: l, aov: raw.average_order_value?.[i] || 0 })));
+            setAovData(raw.labels.map((l, i) => ({ label: l, aov: Number(raw.average_order_value?.[i]) || 0 })));
           } else {
             setAovData([]);
           }
@@ -142,6 +143,7 @@ export default function AnalyticsPage() {
             onChange={(e) => setSelectedRange(e.target.value)}
             className="text-sm font-semibold text-slate-700 bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-colors shadow-sm outline-none cursor-pointer"
           >
+            <option value="today">Today</option>
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
             <option value="90d">Last 90 Days</option>

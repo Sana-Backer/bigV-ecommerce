@@ -160,7 +160,7 @@ const Navbar = ({ theme = "dark" }) => {
             <div className="flex items-center gap-3 lg:gap-0">
               <Link href="/">
                 <h1 className={`${textColorClass} text-xl sm:text-2xl md:text-3xl font-semibold tracking-[0.2em] md:tracking-[0.3em] cursor-pointer hover:opacity-80 transition-all duration-500`}>
-                  LUMORA
+                  BIGSVENTURE
                 </h1>
               </Link>
             </div>
@@ -260,7 +260,7 @@ const Navbar = ({ theme = "dark" }) => {
                       <div className="space-y-3 text-left">
                         <div className="border-b pb-2 border-slate-100">
                           <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                            Welcome to Lumora
+                            Welcome to BIGSVENTURE
                           </p>
                         </div>
                         <Link

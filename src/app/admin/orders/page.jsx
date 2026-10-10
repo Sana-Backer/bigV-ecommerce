@@ -623,7 +623,7 @@ export default function OrderManagement() {
 
                     {/* Payment Status */}
                     <td className="py-4.5 px-6">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase border ${order.payment === "PAID"
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase border ${order.payment?.toLowerCase() === "paid"
                           ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                           : "bg-rose-50 text-rose-600 border-rose-100"
                         }`}>
@@ -637,12 +637,12 @@ export default function OrderManagement() {
                         <span className={`w-2 h-2 rounded-full ${order.status === "Pending" ? "bg-amber-400" :
                             order.status === "Processing" ? "bg-indigo-500" :
                               order.status === "Shipped" ? "bg-blue-400" :
-                                order.status === "Delivered" ? "bg-emerald-500" : "bg-rose-500"
+                                (order.status === "Delivered" || order.status === "Confirmed") ? "bg-emerald-500" : "bg-rose-500"
                           }`} />
                         <span className={`font-bold capitalize ${order.status === "Pending" ? "text-amber-500" :
                             order.status === "Processing" ? "text-indigo-600" :
                               order.status === "Shipped" ? "text-blue-500" :
-                                order.status === "Delivered" ? "text-emerald-600" : "text-rose-500"
+                                (order.status === "Delivered" || order.status === "Confirmed") ? "text-emerald-600" : "text-rose-500"
                           }`}>{order.status}</span>
                       </div>
                     </td>

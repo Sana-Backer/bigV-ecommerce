@@ -138,7 +138,14 @@ export default function ProductDetailPage({ params: paramsPromise }) {
         if (errorData?.message === "Authentication credentials were not provided.") {
           setShowAuthModal(true);
         } else {
-          toast.error(typeof errorData === 'object' ? JSON.stringify(errorData) : "Failed to add to wishlist");
+          const errorMsg = errorData?.message || (typeof errorData === 'string' ? errorData : "Failed to add to wishlist");
+          toast.error(errorMsg, {
+            style: {
+              background: "#2d3150",
+              color: "#fff",
+              borderRadius: "12px",
+            }
+          });
         }
       }
     } catch (err) {
@@ -536,16 +543,18 @@ export default function ProductDetailPage({ params: paramsPromise }) {
           <div className="w-full lg:w-[45%] bg-[#F2F2F2] rounded-none p-4 sm:p-4 lg:p-8 relative z-20">
 
             {/* Badge */}
-            <div className="animate-fade-up mb-4 flex items-center">
-              <div className="w-[162px] h-[28px] rounded-[15px] border-[0.8px] border-[#767676] flex items-center justify-center">
-                <span
-                  className="text-[#130D40] text-[15px] font-normal uppercase leading-none tracking-normal"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  PURE BRILLIANCE
-                </span>
+            {product?.is_featured && (
+              <div className="animate-fade-up mb-4 flex items-center">
+                <div className="w-[162px] h-[28px] rounded-[15px] border-[0.8px] border-[#767676] flex items-center justify-center">
+                  <span
+                    className="text-[#130D40] text-[15px] font-normal uppercase leading-none tracking-normal"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    FEATURED
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Main Title */}
             <h1
@@ -903,7 +912,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                     <div>
                       <h3 className="text-2xl font-bold font-dm-serif text-[#2d3150] mb-4 uppercase tracking-wide">{product?.ingredients_title || "KEY ACTIVE INGREDIENTS"}</h3>
                       <p className="text-sm leading-[1.8] text-[#5c6080] font-medium tracking-wide mb-6 whitespace-pre-line">
-                        {product?.ingredients || "Lumora lip cosmetics are clean-formulated, prioritizing natural nourishment with science-backed efficacy. Free from parabens, mineral oils, and synthetic fragrances."}
+                        {product?.ingredients || "BIGSVENTURE lip cosmetics are clean-formulated, prioritizing natural nourishment with science-backed efficacy. Free from parabens, mineral oils, and synthetic fragrances."}
                       </p>
                     </div>
                   </div>
@@ -1004,8 +1013,8 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                 >
                   {/* Top Badge & Bag Icon */}
                   <div className="mb-4 flex items-center justify-between relative z-10">
-                    <span className="text-[11px] font-medium tracking-wide bg-white text-[#2d3150] px-4 py-1.5 rounded-full uppercase">
-                      PURE BRILLIANCE
+                    <span className={`text-[11px] font-medium tracking-wide bg-white text-[#2d3150] px-4 py-1.5 rounded-full uppercase ${prod.is_featured ? '' : 'invisible'}`}>
+                      FEATURED
                     </span>
                     <button className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#2d3150] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:scale-110 transition-transform">
                       <ShoppingBag size={14} strokeWidth={2} />

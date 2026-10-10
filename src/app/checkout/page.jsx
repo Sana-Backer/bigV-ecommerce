@@ -14,11 +14,11 @@ import { Loader2 } from "lucide-react";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-  
+
   const [cartItems, setCartItems] = useState([]);
   const [quote, setQuote] = useState(null);
   const [sameAsShipping, setSameAsShipping] = useState(true);
@@ -53,7 +53,7 @@ export default function CheckoutPage() {
   });
 
   const [paymentMethod, setPaymentMethod] = useState("COD");
-  
+
   useEffect(() => {
     fetchCheckoutData();
   }, []);
@@ -65,7 +65,7 @@ export default function CheckoutPage() {
       if (cartRes && cartRes.status === 200) {
         setCartItems(cartRes.data.data?.items || cartRes.data?.items || []);
       }
-      
+
       const quoteRes = await checkoutQuoteApi({});
       if (quoteRes && quoteRes.status === 200) {
         setQuote(quoteRes.data.data || quoteRes.data);
@@ -90,13 +90,85 @@ export default function CheckoutPage() {
     setBillingAddress(prev => ({ ...prev, [name]: value }));
   };
 
+
+  const handleBlur = (e, section = '') => {
+    const { name, value } = e.target;
+    let error = null;
+
+    if (name === "email") {
+      if (!value) error = "Email is required.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) error = "Please enter a valid email address.";
+    } else if (name === "phone") {
+      if (!value) error = "Phone is required.";
+      else if (!/^\d{10}$/.test(value)) error = "Please enter a valid 10-digit phone number.";
+    } else if (name === "postal_code") {
+      if (!value) error = "Postal Code is required.";
+      else if (!/^\d{6}$/.test(value.trim())) error = "Please enter a valid 6-digit postal code.";
+    } else if (['full_name', 'line1', 'city', 'state', 'country'].includes(name)) {
+      if (!value?.trim()) {
+        const labels = {
+          full_name: "Full Name", line1: "Address Line 1", city: "City", state: "State", country: "Country"
+        };
+        error = `${labels[name]} is required.`;
+      }
+    }
+
+    const fieldKey = section ? `${section}_${name}` : name;
+    
+    if (error) {
+      setFieldErrors(prev => ({ ...prev, [fieldKey]: error }));
+    } else {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldKey];
+        return newErrors;
+      });
+    }
+  };
+
   const handleSubmit = async (e) => {
+
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     setFieldErrors({});
 
     try {
+
+      const errors = {};
+      
+      if (!contactInfo.email) errors.email = "Email is required.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contactInfo.email)) errors.email = "Please enter a valid email address.";
+
+      if (!contactInfo.phone) errors.phone = "Phone is required.";
+      else if (!/^\d{10}$/.test(contactInfo.phone)) errors.phone = "Please enter a valid 10-digit phone number.";
+
+      if (!shippingAddress.full_name?.trim()) errors.full_name = "Full Name is required.";
+      if (!shippingAddress.line1?.trim()) errors.line1 = "Address Line 1 is required.";
+      if (!shippingAddress.city?.trim()) errors.city = "City is required.";
+      if (!shippingAddress.state?.trim()) errors.state = "State is required.";
+      
+      if (!shippingAddress.postal_code) errors.postal_code = "Postal Code is required.";
+      else if (!/^\d{6}$/.test(shippingAddress.postal_code.trim())) errors.postal_code = "Please enter a valid 6-digit postal code.";
+      
+      if (!shippingAddress.country?.trim()) errors.country = "Country is required.";
+
+      if (!sameAsShipping) {
+        if (!billingAddress.full_name?.trim()) errors.billing_full_name = "Billing Full Name is required.";
+        if (!billingAddress.line1?.trim()) errors.billing_line1 = "Billing Address Line 1 is required.";
+        if (!billingAddress.city?.trim()) errors.billing_city = "Billing City is required.";
+        if (!billingAddress.state?.trim()) errors.billing_state = "Billing State is required.";
+        if (!billingAddress.postal_code) errors.billing_postal_code = "Billing Postal Code is required.";
+        else if (!/^\d{6}$/.test(billingAddress.postal_code.trim())) errors.billing_postal_code = "Please enter a valid 6-digit billing postal code.";
+        if (!billingAddress.country?.trim()) errors.billing_country = "Billing Country is required.";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        setSubmitting(false);
+        return;
+      }
+
       let realOrderId = createdOrderId;
       let displayOrderId = createdOrderNumber;
 
@@ -104,7 +176,7 @@ export default function CheckoutPage() {
         // 1. Check Serviceability
         const isCOD = paymentMethod === "COD";
         const serviceRes = await checkServiceabilityApi(shippingAddress.postal_code, isCOD);
-        
+
         const serviceData = serviceRes?.data?.data;
         if (serviceRes?.status !== 200 || !serviceData || serviceData.status !== 200) {
           const errorMsg = `Sorry, delivery is not available for pincode ${shippingAddress.postal_code}${isCOD ? " with Cash on Delivery" : ""}.`;
@@ -125,18 +197,18 @@ export default function CheckoutPage() {
         };
 
         const response = await createOrderApi(payload);
-        
+
         if (response && (response.status === 200 || response.status === 201)) {
           const orderData = response.data?.data || response.data;
           displayOrderId = orderData?.order_number || orderData?.id;
           realOrderId = orderData?.id;
-          
+
           setCreatedOrderId(realOrderId);
           setCreatedOrderNumber(displayOrderId);
         } else {
           let errorMsg = "Failed to create order. Please check your details.";
           const errData = response?.response?.data || response?.data;
-          
+
           if (errData) {
             if (errData.errors && typeof errData.errors === 'object' && Object.keys(errData.errors).length > 0) {
               const firstKey = Object.keys(errData.errors)[0];
@@ -147,7 +219,7 @@ export default function CheckoutPage() {
               errorMsg = errData.message;
             }
           }
-          
+
           setError(errorMsg);
           toast.error(errorMsg);
           setSubmitting(false);
@@ -158,85 +230,85 @@ export default function CheckoutPage() {
       if (paymentMethod === "RAZORPAY") {
         // 1. Create Razorpay Order
         const rzpCreateRes = await razorpayCreateOrderApi({ order_id: realOrderId });
-          if (rzpCreateRes && rzpCreateRes.status === 201) {
-            const rzpData = rzpCreateRes.data.data || rzpCreateRes.data;
-            
-            // 2. Open Razorpay Widget
-            const options = {
-              key: rzpData.key_id,
-              amount: rzpData.amount,
-              currency: rzpData.currency,
-              name: "Lumora Beauty",
-              description: `Order ${displayOrderId}`,
-              order_id: rzpData.razorpay_order_id,
-              handler: async function (response) {
-                // 3. Verify Payment
-                try {
-                  const verifyRes = await razorpayVerifyPaymentApi({
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature
-                  });
+        if (rzpCreateRes && rzpCreateRes.status === 201) {
+          const rzpData = rzpCreateRes.data.data || rzpCreateRes.data;
 
-                  if (verifyRes && verifyRes.status === 200) {
-                    if (typeof window !== "undefined") {
-                      window.dispatchEvent(new Event("cartUpdated"));
-                    }
-                    router.push(`/order-success/${displayOrderId}`);
-                  } else {
-                    setError("Payment verification failed. Please contact support.");
-                    setSubmitting(false);
+          // 2. Open Razorpay Widget
+          const options = {
+            key: rzpData.key_id,
+            amount: rzpData.amount,
+            currency: rzpData.currency,
+            name: "Lumora Beauty",
+            description: `Order ${displayOrderId}`,
+            order_id: rzpData.razorpay_order_id,
+            handler: async function (response) {
+              // 3. Verify Payment
+              try {
+                const verifyRes = await razorpayVerifyPaymentApi({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature
+                });
+
+                if (verifyRes && verifyRes.status === 200) {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new Event("cartUpdated"));
                   }
-                } catch (verifyErr) {
-                  console.error(verifyErr);
-                  setError(verifyErr?.response?.data?.message || "Payment verification failed. Please contact support.");
+                  router.push(`/order-success/${displayOrderId}`);
+                } else {
+                  setError("Payment verification failed. Please contact support.");
                   setSubmitting(false);
                 }
-              },
-              prefill: {
-                name: shippingAddress.full_name,
-                email: contactInfo.email,
-                contact: contactInfo.phone
-              },
-              theme: {
-                color: "#2C332E"
-              },
-              modal: {
-                ondismiss: function () {
-                  setError("Payment was cancelled. Your order has been placed but payment is pending. Please retry payment from your orders page.");
-                  setSubmitting(false);
-                }
+              } catch (verifyErr) {
+                console.error(verifyErr);
+                setError(verifyErr?.response?.data?.message || "Payment verification failed. Please contact support.");
+                setSubmitting(false);
               }
-            };
-            
-            if (window.Razorpay) {
-              const rzp = new window.Razorpay(options);
-              rzp.on('payment.failed', function (response){
-                  setError(response.error.description || "Payment failed. Please try again.");
-                  setSubmitting(false);
-              });
-              rzp.open();
-            } else {
-              setError("Payment gateway is not available right now. Please check your internet connection or adblocker.");
-              setSubmitting(false);
+            },
+            prefill: {
+              name: shippingAddress.full_name,
+              email: contactInfo.email,
+              contact: contactInfo.phone
+            },
+            theme: {
+              color: "#2C332E"
+            },
+            modal: {
+              ondismiss: function () {
+                setError("Payment was cancelled. Your order has been placed but payment is pending. Please retry payment from your orders page.");
+                setSubmitting(false);
+              }
             }
-            
+          };
+
+          if (window.Razorpay) {
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+              setError(response.error.description || "Payment failed. Please try again.");
+              setSubmitting(false);
+            });
+            rzp.open();
           } else {
-            setError(rzpCreateRes?.data?.message || "Failed to initialize payment gateway.");
+            setError("Payment gateway is not available right now. Please check your internet connection or adblocker.");
             setSubmitting(false);
           }
+
         } else {
-          // COD Flow
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(new Event("cartUpdated"));
-          }
-          router.push(`/order-success/${displayOrderId}`);
+          setError(rzpCreateRes?.data?.message || "Failed to initialize payment gateway.");
+          setSubmitting(false);
         }
+      } else {
+        // COD Flow
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("cartUpdated"));
+        }
+        router.push(`/order-success/${displayOrderId}`);
+      }
     } catch (err) {
       console.error(err);
       setError(err?.response?.data?.message || "An unexpected error occurred. Please try again.");
       setSubmitting(false);
-    } 
+    }
   };
 
   if (loading) {
@@ -255,12 +327,12 @@ export default function CheckoutPage() {
     <div className="min-h-screen flex flex-col bg-[#FCFAF7] font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Navbar />
-      
+
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
         <h1 className="text-3xl font-serif text-[#2C332E] mb-8">Checkout</h1>
-        
+
         {error && (
-          <div className="mb-6 bg-rose-50 border border-rose-100 text-rose-700 px-4 py-3 rounded-lg text-sm">
+          <div className="mb-6 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
@@ -268,30 +340,36 @@ export default function CheckoutPage() {
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Form Section */}
           <div className="lg:w-2/3 space-y-8">
-            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-8">
-              
+            <form id="checkout-form" onSubmit={handleSubmit} noValidate className="space-y-8">
+
               {/* Contact Information */}
               <div className="bg-white p-6 rounded-xl border border-[#E6E4DD] shadow-sm">
                 <h2 className="text-xl font-bold text-[#2C332E] mb-4">Contact Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.email ? 'text-rose-500' : 'text-[#5A635B]'}`}>Email *</label>
-                    <input 
-                      type="email" 
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.email ? 'text-red-600' : 'text-[#5A635B]'}`}>Email *</label>
+                    <input
+                      type="email"
+                      name="email"
                       required
                       value={contactInfo.email}
-                      onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.email ? 'border-rose-500 text-rose-500 focus:border-rose-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`}
+                      onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.email ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`}
                     />
+                    {fieldErrors.email && <p className="text-red-600 text-xs mt-1">{fieldErrors.email}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Phone</label>
-                    <input 
-                      type="tel" 
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.phone ? 'text-red-600' : 'text-[#5A635B]'}`}>Phone *</label>
+                    <input
+                      type="tel"
+                      name="phone"
                       value={contactInfo.phone}
-                      onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
-                      className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]"
+                      onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value.replace(/\D/g, '') })}
+                      onBlur={handleBlur}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.phone ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`}
                     />
+                    {fieldErrors.phone && <p className="text-red-600 text-xs mt-1">{fieldErrors.phone}</p>}
                   </div>
                 </div>
               </div>
@@ -301,39 +379,45 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-bold text-[#2C332E] mb-4">Shipping Address</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Full Name *</label>
-                    <input type="text" name="full_name" required value={shippingAddress.full_name} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.full_name ? 'text-red-600' : 'text-[#5A635B]' }`}>Full Name *</label>
+                    <input type="text" name="full_name" required value={shippingAddress.full_name} onChange={handleShippingChange} onBlur={handleBlur} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.full_name ? 'border-red-600 focus:border-red-600' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                    {fieldErrors.full_name && <p className="text-red-600 text-xs mt-1">{fieldErrors.full_name}</p>}
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Address Line 1 *</label>
-                    <input type="text" name="line1" required value={shippingAddress.line1} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.line1 ? 'text-red-600' : 'text-[#5A635B]' }`}>Address Line 1 *</label>
+                    <input type="text" name="line1" required value={shippingAddress.line1} onChange={handleShippingChange} onBlur={handleBlur} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.line1 ? 'border-red-600 focus:border-red-600' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                    {fieldErrors.line1 && <p className="text-red-600 text-xs mt-1">{fieldErrors.line1}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Address Line 2 (Optional)</label>
                     <input type="text" name="line2" value={shippingAddress.line2} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">City *</label>
-                    <input type="text" name="city" required value={shippingAddress.city} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.city ? 'text-red-600' : 'text-[#5A635B]' }`}>City *</label>
+                    <input type="text" name="city" required value={shippingAddress.city} onChange={handleShippingChange} onBlur={handleBlur} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.city ? 'border-red-600 focus:border-red-600' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                    {fieldErrors.city && <p className="text-red-600 text-xs mt-1">{fieldErrors.city}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">State *</label>
-                    <input type="text" name="state" required value={shippingAddress.state} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.state ? 'text-red-600' : 'text-[#5A635B]' }`}>State *</label>
+                    <input type="text" name="state" required value={shippingAddress.state} onChange={handleShippingChange} onBlur={handleBlur} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.state ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                    {fieldErrors.state && <p className="text-red-600 text-xs mt-1">{fieldErrors.state}</p>}
                   </div>
                   <div>
-                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.postal_code ? 'text-rose-500' : 'text-[#5A635B]'}`}>Postal Code *</label>
-                    <input 
-                      type="text" 
-                      name="postal_code" 
-                      required 
-                      value={shippingAddress.postal_code} 
-                      onChange={handleShippingChange} 
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.postal_code ? 'border-rose-500 text-rose-500 focus:border-rose-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} 
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${fieldErrors.postal_code ? 'text-red-600' : 'text-[#5A635B]'}`}>Postal Code *</label>
+                    <input
+                      type="text"
+                      name="postal_code"
+                      required
+                      value={shippingAddress.postal_code}
+                      onChange={handleShippingChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.postal_code ? 'border-red-600 focus:border-red-600' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`}
                     />
+                    {fieldErrors.postal_code && <p className="text-red-600 text-xs mt-1">{fieldErrors.postal_code}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Country *</label>
-                    <input type="text" name="country" required value={shippingAddress.country} onChange={handleShippingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                    <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.country ? 'text-red-600' : 'text-[#5A635B]' }`}>Country *</label>
+                    <input type="text" name="country" required value={shippingAddress.country} onChange={handleShippingChange} onBlur={handleBlur} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.country ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                    {fieldErrors.country && <p className="text-red-600 text-xs mt-1">{fieldErrors.country}</p>}
                   </div>
                 </div>
               </div>
@@ -341,8 +425,8 @@ export default function CheckoutPage() {
               {/* Billing Address Toggle */}
               <div className="bg-white p-6 rounded-xl border border-[#E6E4DD] shadow-sm">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={sameAsShipping}
                     onChange={(e) => setSameAsShipping(e.target.checked)}
                     className="w-5 h-5 text-[#2C332E] border-[#E6E4DD] rounded focus:ring-[#2C332E]"
@@ -357,32 +441,38 @@ export default function CheckoutPage() {
                   <h2 className="text-xl font-bold text-[#2C332E] mb-4">Billing Address</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Full Name *</label>
-                      <input type="text" name="full_name" required value={billingAddress.full_name} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.full_name ? 'text-red-600' : 'text-[#5A635B]' }`}>Full Name *</label>
+                      <input type="text" name="full_name" required value={billingAddress.full_name} onChange={handleBillingChange} onBlur={(e) => handleBlur(e, 'billing')} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.billing_full_name ? 'border-red-600 focus:border-red-600' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                      {fieldErrors.billing_full_name && <p className="text-red-600 text-xs mt-1">{fieldErrors.billing_full_name}</p>}
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Address Line 1 *</label>
-                      <input type="text" name="line1" required value={billingAddress.line1} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.line1 ? 'text-red-600' : 'text-[#5A635B]' }`}>Address Line 1 *</label>
+                      <input type="text" name="line1" required value={billingAddress.line1} onChange={handleBillingChange} onBlur={(e) => handleBlur(e, 'billing')} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.billing_line1 ? 'border-red-600 focus:border-red-600' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                      {fieldErrors.billing_line1 && <p className="text-red-600 text-xs mt-1">{fieldErrors.billing_line1}</p>}
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Address Line 2 (Optional)</label>
                       <input type="text" name="line2" value={billingAddress.line2} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">City *</label>
-                      <input type="text" name="city" required value={billingAddress.city} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.city ? 'text-red-600' : 'text-[#5A635B]' }`}>City *</label>
+                      <input type="text" name="city" required value={billingAddress.city} onChange={handleBillingChange} onBlur={(e) => handleBlur(e, 'billing')} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.billing_city ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                      {fieldErrors.billing_city && <p className="text-red-600 text-xs mt-1">{fieldErrors.billing_city}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">State *</label>
-                      <input type="text" name="state" required value={billingAddress.state} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.state ? 'text-red-600' : 'text-[#5A635B]' }`}>State *</label>
+                      <input type="text" name="state" required value={billingAddress.state} onChange={handleBillingChange} onBlur={(e) => handleBlur(e, 'billing')} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.billing_state ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                      {fieldErrors.billing_state && <p className="text-red-600 text-xs mt-1">{fieldErrors.billing_state}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Postal Code *</label>
-                      <input type="text" name="postal_code" required value={billingAddress.postal_code} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.billing_postal_code ? 'text-red-600' : 'text-[#5A635B]' }`}>Postal Code *</label>
+                      <input type="text" name="postal_code" required value={billingAddress.postal_code} onChange={handleBillingChange} onBlur={(e) => handleBlur(e, 'billing')} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.billing_postal_code ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                      {fieldErrors.billing_postal_code && <p className="text-red-600 text-xs mt-1">{fieldErrors.billing_postal_code}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[#5A635B] uppercase tracking-wider mb-1">Country *</label>
-                      <input type="text" name="country" required value={billingAddress.country} onChange={handleBillingChange} className="w-full px-4 py-2 border border-[#E6E4DD] rounded-lg focus:outline-none focus:border-[#2C332E] bg-[#FCFAF7]" />
+                      <label className={`block text-xs font-bold uppercase tracking-wider mb-1 ${ fieldErrors.country ? 'text-red-600' : 'text-[#5A635B]' }`}>Country *</label>
+                      <input type="text" name="country" required value={billingAddress.country} onChange={handleBillingChange} onBlur={(e) => handleBlur(e, 'billing')} className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.billing_country ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`} />
+                      {fieldErrors.billing_country && <p className="text-red-600 text-xs mt-1">{fieldErrors.billing_country}</p>}
                     </div>
                   </div>
                 </div>
@@ -393,10 +483,10 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-bold text-[#2C332E] mb-4">Payment Method</h2>
                 <div className="space-y-3">
                   <label className={`flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'RAZORPAY' ? 'border-[#2C332E] bg-[#F5F4F0]' : 'border-[#E6E4DD] hover:bg-[#F5F4F0]'}`}>
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
-                      value="RAZORPAY" 
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="RAZORPAY"
                       checked={paymentMethod === "RAZORPAY"}
                       onChange={() => setPaymentMethod("RAZORPAY")}
                       className="w-4 h-4 text-[#2C332E]"
@@ -407,10 +497,10 @@ export default function CheckoutPage() {
                     </div>
                   </label>
                   <label className={`flex items-center gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${paymentMethod === 'COD' ? 'border-[#2C332E] bg-[#F5F4F0]' : 'border-[#E6E4DD] hover:bg-[#F5F4F0]'}`}>
-                    <input 
-                      type="radio" 
-                      name="paymentMethod" 
-                      value="COD" 
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="COD"
                       checked={paymentMethod === "COD"}
                       onChange={() => setPaymentMethod("COD")}
                       className="w-4 h-4 text-[#2C332E]"
@@ -430,16 +520,16 @@ export default function CheckoutPage() {
           <div className="lg:w-1/3">
             <div className="bg-white p-6 rounded-xl border border-[#E6E4DD] shadow-sm sticky top-24">
               <h2 className="text-xl font-bold text-[#2C332E] mb-6">Order Summary</h2>
-              
+
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto pr-2">
                 {cartItems.map((item, idx) => (
                   <div key={idx} className="flex gap-4">
                     <div className="w-16 h-16 bg-[#F5F4F0] rounded-md border border-[#E6E4DD] overflow-hidden flex-shrink-0">
-                       {item.variant?.primary_image || item.product?.primary_image ? (
-                          <img src={item.variant?.primary_image || item.product?.primary_image} alt={item.product?.name} className="w-full h-full object-cover" />
-                       ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No Image</div>
-                       )}
+                      {item.variant?.primary_image || item.product?.primary_image ? (
+                        <img src={item.variant?.primary_image || item.product?.primary_image} alt={item.product?.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-400">No Image</div>
+                      )}
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
                       <h4 className="text-sm font-bold text-[#2C332E] line-clamp-1">{item.product?.name}</h4>
@@ -475,13 +565,13 @@ export default function CheckoutPage() {
                   <span className="font-medium text-[#2C332E]">₹{quote?.tax_amount || "0.00"}</span>
                 </div>
               </div>
-              
+
               <div className="border-t border-[#E6E4DD] pt-4 mt-4 flex justify-between items-center">
                 <span className="text-lg font-bold text-[#2C332E]">Total</span>
                 <span className="text-xl font-bold text-[#2C332E]">₹{quote?.grand_total || "0.00"}</span>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 form="checkout-form"
                 disabled={submitting || (cartItems.length === 0 && !createdOrderId)}
@@ -489,7 +579,7 @@ export default function CheckoutPage() {
               >
                 {submitting ? <Loader2 size={16} className="animate-spin" /> : createdOrderId ? "Retry Payment" : "Confirm Order"}
               </button>
-              
+
               <p className="text-[10px] text-center text-[#7B827C] mt-3">
                 By placing your order, you agree to our Terms and Conditions.
               </p>
