@@ -336,8 +336,12 @@ export default function OrdersTab() {
                     <div className="space-y-3">
                       {selectedOrder.products.map((item, idx) => (
                         <div key={idx} className="flex gap-4 p-3 rounded-xl border border-slate-200 bg-white">
-                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 shrink-0 flex items-center justify-center">
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-50 border border-slate-100 shrink-0 flex items-center justify-center font-bold text-xs text-slate-500">
+                            {item.image ? (
+                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{item.name ? item.name.slice(0, 2).toUpperCase() : "P"}</span>
+                            )}
                           </div>
                           <div className="flex-1 flex justify-between">
                             <div>

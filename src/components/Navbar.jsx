@@ -156,25 +156,28 @@ const Navbar = ({ theme = "dark" }) => {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
           <div className={`flex items-center justify-between transition-all duration-500 ${isScrolled ? 'h-16' : 'h-20'}`}>
 
-            {/* Logo */}
-            <div className="flex items-center gap-3 lg:gap-0">
-              <Link href="/">
-                <h1 className={`${textColorClass} text-xl sm:text-2xl md:text-3xl font-semibold tracking-[0.2em] md:tracking-[0.3em] cursor-pointer hover:opacity-80 transition-all duration-500`}>
-                  BIGSVENTURE
-                </h1>
+            {/* Logo (Left) */}
+            <div className="flex-1 flex items-center justify-start">
+              <Link href="/" className="flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="BigS Ventures"
+                  className={`w-auto object-contain transition-all duration-300 ${
+                    isScrolled ? "h-9 md:h-10" : "h-11 md:h-14"
+                  } ${isDark && !isScrolled ? "brightness-0 invert" : ""}`}
+                />
               </Link>
             </div>
 
-            {/* Nav Links */}
-            <nav className={`hidden md:flex items-center gap-10 ${textColorClass} text-sm font-medium transition-colors duration-500`}>
+            {/* Nav Links (Center) */}
+            <nav className={`hidden md:flex items-center justify-center gap-10 ${textColorClass} text-sm font-medium transition-colors duration-500`}>
               <Link href="/products" className="hover:opacity-80 transition-opacity">Shop</Link>
               <Link href="/about-us" className="hover:opacity-80 transition-opacity">About Us</Link>
-              {/* <Link href="#" className="hover:opacity-80 transition-opacity">Blog</Link> */}
               <Link href="/contact" className="hover:opacity-80 transition-opacity">Contact</Link>
             </nav>
 
-            {/* Icons */}
-            <div className={`hidden md:flex items-center gap-5 ${textColorClass} transition-colors duration-500`}>
+            {/* Icons (Right) */}
+            <div className={`flex-1 hidden md:flex items-center justify-end gap-5 ${textColorClass} transition-colors duration-500`}>
               <button 
                 onClick={() => setIsSearchOpen(true)}
                 className="hover:scale-105 transition-transform"

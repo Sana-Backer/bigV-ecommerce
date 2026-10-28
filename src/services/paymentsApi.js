@@ -34,6 +34,12 @@ export const getAdminPaymentDetailApi = async (id) => {
   return await commonAPI("GET", `${api}/admin/payments/${id}/`, "", headers);
 };
 
+export const refundAdminOrderApi = async (orderId, refundData = {}, reqHeader) => {
+  return await commonAPI("POST", `${api}/admin/orders/${orderId}/refund/`, refundData, reqHeader);
+};
+
+export const adminOrderRefundApi = refundAdminOrderApi;
+
 // Razorpay webhook
 export const razorpayWebhookApi = async (reqBody) => {
   // Webhooks often don't require auth headers from the client in the same way, 

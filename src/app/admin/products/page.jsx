@@ -14,11 +14,16 @@ import {
   AlertCircle,
   ArrowLeft,
   Upload,
-  X
+  X,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  Info
 } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi, getProductVariantsApi, deleteProductVariantApi, deleteProductImageApi, deleteProductApi } from "@/services/productsApi";
+import { addProductApi, getProductsApi, getProductDetailApi, updateProductApi, addProductImageApi, addProductVariantApi, updateProductVariantApi, getProductVariantsApi, deleteProductVariantApi, deleteProductImageApi, deleteProductApi, importCatalogApi } from "@/services/productsApi";
 import { getCategoriesApi } from "@/services/categoryApi";
 import ManageVariantsSection from "@/components/ManageVariantsSection";
 
@@ -36,7 +41,13 @@ export default function AdminProducts() {
   const [existingImageIds, setExistingImageIds] = useState({});
   const [productToDelete, setProductToDelete] = useState(null);
 
-
+  // Bulk Import state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [isDryRun, setIsDryRun] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const importFileInputRef = useRef(null);
 
   // Variant States
   const [variantProduct, setVariantProduct] = useState(null);
@@ -141,7 +152,7 @@ export default function AdminProducts() {
             id: product.id,
             name: product.name,
             price: `₹${product.base_price}`,
-            image: product.primary_image || "",
+            image: product.primary_image || null,
             category: product.category ? product.category.name : "",
             stock: stock,
             status: stock > 0 ? "In Stock" : "Out of Stock",
@@ -163,9 +174,75 @@ export default function AdminProducts() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCategories();
     fetchProducts();
   }, []);
+
+  // Bulk Import Handlers
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith(".xlsx")) {
+        toast.error("Only .xlsx files are supported.");
+        return;
+      }
+      setImportFile(file);
+      setImportResult(null);
+    }
+  };
+
+  const handleBulkImport = async () => {
+    if (!importFile) {
+      toast.error("Please select an Excel (.xlsx) file to upload.");
+      return;
+    }
+
+    setIsImporting(true);
+    setImportResult(null);
+
+    try {
+      const response = await importCatalogApi(importFile, isDryRun);
+
+      if (response && (response.status === 200 || response.status === 201)) {
+        const data = response.data;
+        setImportResult(data);
+        if (isDryRun) {
+          toast.success("Dry run validation passed! No issues found.");
+        } else {
+          toast.success("Catalog imported successfully!");
+          resetImportModal();
+          fetchProducts();
+          fetchCategories();
+        }
+      } else {
+        const errorData = response?.data || {};
+        setImportResult(errorData);
+        if (errorData.detail) {
+          toast.error(errorData.detail);
+        } else if (errorData.errors && errorData.errors.length > 0) {
+          toast.error(`Import failed with ${errorData.errors.length} error(s). Review below.`);
+        } else {
+          toast.error(response?.message || "Failed to process catalog import.");
+        }
+      }
+    } catch (err) {
+      console.error("Bulk import failed:", err);
+      toast.error(err.response?.data?.detail || "An unexpected error occurred during import.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const resetImportModal = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setIsDryRun(false);
+    setIsImportModalOpen(false);
+    if (importFileInputRef.current) {
+      importFileInputRef.current.value = "";
+    }
+  };
 
   const startManageVariants = (product) => {
     setVariantProduct(product);
@@ -1068,7 +1145,11 @@ export default function AdminProducts() {
 
 
           <button
-            onClick={() => toast("Bulk upload feature coming soon!", { icon: "🚀" })}
+            onClick={() => {
+              setImportResult(null);
+              setImportFile(null);
+              setIsImportModalOpen(true);
+            }}
             className="flex items-center gap-2 text-sm font-bold text-[#2C3B5E] bg-white border-2 border-[#2C3B5E]/20 px-5 py-2.5 rounded-xl hover:bg-slate-50 hover:border-[#2C3B5E] transition-all shadow-sm cursor-pointer"
           >
             <Upload className="w-4 h-4" />
@@ -1178,17 +1259,20 @@ export default function AdminProducts() {
                     {/* Product Image and Name */}
                     <td className="py-4.5 px-6">
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl ${product.bgColor || "bg-pink-50"} overflow-hidden flex items-center justify-center border border-slate-100 shrink-0`}>
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                              e.target.parentNode.className = `w-12 h-12 rounded-xl ${product.bgColor || "bg-pink-50"} flex items-center justify-center font-bold text-xs text-slate-700`;
-                              e.target.parentNode.innerText = product.name.split(" ").map(n => n[0]).join("");
-                            }}
-                          />
+                        <div className={`w-12 h-12 rounded-xl ${product.bgColor || "bg-pink-50"} overflow-hidden flex items-center justify-center border border-slate-100 shrink-0 font-bold text-xs text-slate-700`}>
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                e.target.parentNode.innerText = product.name ? product.name.split(" ").map(n => n[0]).join("") : "";
+                              }}
+                            />
+                          ) : (
+                            <span>{product.name ? product.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "P"}</span>
+                          )}
                         </div>
                         <div>
                           <span className="text-slate-800 font-bold block">{product.name}</span>
@@ -1334,7 +1418,11 @@ export default function AdminProducts() {
                             : "border-slate-100 hover:border-slate-300"
                             }`}
                         >
-                          <img src={imgObj.image} alt="Thumbnail" className="w-full h-full object-cover" />
+                          {imgObj.image ? (
+                            <img src={imgObj.image} alt="Thumbnail" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400 font-bold">Img</div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1472,6 +1560,255 @@ export default function AdminProducts() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[92vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#EAF5FF] flex items-center justify-center text-[#2C3B5E]">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Bulk Import Catalog</h2>
+                  <p className="text-xs text-slate-500 font-medium">Upload an Excel (.xlsx) file to create or update products, categories, variants, and images</p>
+                </div>
+              </div>
+              <button
+                onClick={resetImportModal}
+                disabled={isImporting}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1 text-slate-700">
+              
+              {/* Instructions Guide */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-[#2C3B5E]">
+                  <Info className="w-4 h-4 text-[#2C3B5E]" />
+                  <span>Required Excel Sheet Structure</span>
+                </div>
+                <p className="text-slate-600 leading-relaxed font-medium">
+                  Your workbook can include the following sheets:
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1 font-medium">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-[11px]">1. Categories</span>
+                    <span className="text-[10px] text-slate-500">name, slug, parent, is_active</span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-[11px]">2. Products</span>
+                    <span className="text-[10px] text-slate-500">sku, name, category, base_price, stock_quantity...</span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-[11px]">3. Variants</span>
+                    <span className="text-[10px] text-slate-500">product_sku, sku, name, price, stock_quantity...</span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-800 block text-[11px]">4. Images</span>
+                    <span className="text-[10px] text-slate-500">product_sku, image_url, alt_text, sort_order</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 italic pt-1">
+                  * Upserts are matched by SKU. Unchanged cells can be left blank on update. Transactions are all-or-nothing.
+                </p>
+              </div>
+
+              {/* File Dropzone / Picker */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">Select Spreadsheet (.xlsx)</label>
+                
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".xlsx"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+
+                {!importFile ? (
+                  <div
+                    onClick={() => importFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 hover:border-[#2C3B5E] bg-slate-50/50 hover:bg-[#EAF5FF]/30 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-700">Click to choose Excel file or drag & drop</p>
+                      <p className="text-xs text-slate-400 font-medium">Only Microsoft Excel files (.xlsx) up to 10MB</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                        <FileSpreadsheet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 truncate max-w-xs">{importFile.name}</p>
+                        <p className="text-xs text-slate-500 font-medium">{(importFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isImporting}
+                      onClick={() => {
+                        setImportFile(null);
+                        setImportResult(null);
+                        if (importFileInputRef.current) importFileInputRef.current.value = "";
+                      }}
+                      className="p-1.5 hover:bg-emerald-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                      title="Remove file"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Dry Run Checkbox Option */}
+              <div className="flex items-start gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                <input
+                  type="checkbox"
+                  id="dry-run-checkbox"
+                  checked={isDryRun}
+                  onChange={(e) => setIsDryRun(e.target.checked)}
+                  disabled={isImporting}
+                  className="mt-0.5 w-4 h-4 text-[#2C3B5E] rounded border-slate-300 focus:ring-[#2C3B5E] cursor-pointer"
+                />
+                <label htmlFor="dry-run-checkbox" className="text-xs text-slate-700 cursor-pointer select-none">
+                  <span className="font-bold text-slate-800 block">Dry run (Validate schema & rows only)</span>
+                  <span className="text-slate-500 font-medium">
+                    Runs the full validation check on all sheets without saving changes to the database. Useful for verifying large catalog updates first.
+                  </span>
+                </label>
+              </div>
+
+              {/* Loading State */}
+              {isImporting && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3 text-blue-700">
+                  <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                  <div className="text-xs font-semibold">
+                    <p className="font-bold">Processing catalog file...</p>
+                    <p className="text-blue-600 font-normal">Validating rows, checking SKUs, and updating records. Please wait.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Import Results Display */}
+              {importResult && (
+                <div className="space-y-3 pt-2">
+                  {importResult.ok ? (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <span>{importResult.dry_run ? "Dry Run Completed Successfully (No Database Changes Made)" : "Catalog Imported Successfully!"}</span>
+                      </div>
+                      
+                      {/* Summary Metrics Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                        <div className="bg-white p-2.5 rounded-xl border border-emerald-100 text-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Categories</span>
+                          <span className="text-sm font-extrabold text-slate-800">
+                            +{importResult.created?.categories || 0} / {importResult.updated?.categories || 0} upd
+                          </span>
+                        </div>
+                        <div className="bg-white p-2.5 rounded-xl border border-emerald-100 text-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Products</span>
+                          <span className="text-sm font-extrabold text-slate-800">
+                            +{importResult.created?.products || 0} / {importResult.updated?.products || 0} upd
+                          </span>
+                        </div>
+                        <div className="bg-white p-2.5 rounded-xl border border-emerald-100 text-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Variants</span>
+                          <span className="text-sm font-extrabold text-slate-800">
+                            +{importResult.created?.variants || 0} / {importResult.updated?.variants || 0} upd
+                          </span>
+                        </div>
+                        <div className="bg-white p-2.5 rounded-xl border border-emerald-100 text-center">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Images</span>
+                          <span className="text-sm font-extrabold text-slate-800">
+                            +{importResult.created?.images || 0} / {importResult.skipped?.images || 0} skip
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3">
+                      <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
+                        <AlertTriangle className="w-5 h-5 text-rose-600" />
+                        <span>Import Failed: Validation Issues Detected</span>
+                      </div>
+                      
+                      {importResult.errors && importResult.errors.length > 0 && (
+                        <div className="max-h-48 overflow-y-auto space-y-1.5 p-2 bg-white rounded-xl border border-rose-200">
+                          {importResult.errors.map((err, idx) => (
+                            <div key={idx} className="text-xs text-rose-700 font-medium flex items-start gap-1.5 py-0.5">
+                              <span className="font-bold text-rose-900">•</span>
+                              <span>{err}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {importResult.detail && !importResult.errors && (
+                        <p className="text-xs font-medium text-rose-700">{importResult.detail}</p>
+                      )}
+
+                      <p className="text-[11px] text-rose-600 font-medium italic">
+                        * All changes were automatically rolled back. Please resolve the errors in your spreadsheet and try again.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={resetImportModal}
+                disabled={isImporting}
+                className="px-5 py-2.5 text-sm font-bold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                Close
+              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleBulkImport}
+                  disabled={!importFile || isImporting}
+                  className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-[#2C3B5E] hover:bg-[#1E2A47] rounded-xl transition-all cursor-pointer shadow-md shadow-[#2C3B5E]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isDryRun ? "Validating..." : "Importing..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      <span>{isDryRun ? "Run Validation Only" : "Import Catalog"}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

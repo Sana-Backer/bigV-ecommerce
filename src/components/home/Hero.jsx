@@ -13,7 +13,7 @@ const Hero = () => {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await getActiveBannersApi();
+        const res = await getActiveBannersApi("home_hero");
         if (res.status === 200) {
           const fetchedBanners = res.data.results || res.data.data || res.data;
           setBanners(Array.isArray(fetchedBanners) ? fetchedBanners.filter(b => b.placement === "home_hero") : []);
@@ -55,9 +55,8 @@ const Hero = () => {
               {banners.map((banner, index) => (
                 <div
                   key={banner.id}
-                  className={`absolute inset-0 transition-opacity duration-1000 ${
-                    index === currentSlide ? "opacity-100 z-0" : "opacity-0 -z-10"
-                  }`}
+                  className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? "opacity-100 z-0" : "opacity-0 -z-10"
+                    }`}
                 >
                   {/* Desktop Image */}
                   <Image
@@ -78,7 +77,7 @@ const Hero = () => {
                     />
                   )}
                   <div className="absolute inset-0 bg-black/20" />
-                  
+
                   {/* Banner Text (if any) */}
                   {(banner.title || banner.subtitle) && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 px-4 text-center">
@@ -120,16 +119,15 @@ const Hero = () => {
                   >
                     <ChevronRight className="w-6 h-6" />
                   </button>
-                  
+
                   {/* Dots */}
                   <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
                     {banners.map((_, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentSlide(i)}
-                        className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${
-                          i === currentSlide ? "bg-white scale-110" : "bg-white/50 hover:bg-white/80"
-                        }`}
+                        className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${i === currentSlide ? "bg-white scale-110" : "bg-white/50 hover:bg-white/80"
+                          }`}
                       />
                     ))}
                   </div>

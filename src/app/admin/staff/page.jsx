@@ -10,13 +10,15 @@ import {
   Users,
   ShieldAlert,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import {
   getStaffListApi,
   createStaffApi,
   updateUserApi,
   deactivateUserApi,
+  activateUserApi,
   changeUserRoleApi
 } from "@/services/usersApi";
 
@@ -108,6 +110,21 @@ export default function AdminStaff() {
       toast.error("Error deactivating staff.");
     } finally {
       setDeactivateId(null);
+    }
+  };
+
+  const handleActivate = async (id) => {
+    try {
+      const res = await activateUserApi(id, { is_active: true });
+      if (res && (res.status === 200 || res.status === 201)) {
+        toast.success("Staff activated successfully.");
+        fetchStaff();
+      } else {
+        toast.error(res?.data?.message || "Failed to activate staff.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error activating staff.");
     }
   };
 
@@ -481,14 +498,23 @@ export default function AdminStaff() {
                         >
                           <Edit className="w-4.5 h-4.5" />
                         </button>
-                        {/* Delete/Deactivate button */}
-                        <button
-                          onClick={() => handleDelete(staff.id)}
-                          className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
-                          title="Deactivate Staff"
-                        >
-                          <Trash2 className="w-4.5 h-4.5" />
-                        </button>
+                        {staff.is_active ? (
+                          <button
+                            onClick={() => handleDelete(staff.id)}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all cursor-pointer"
+                            title="Deactivate Staff"
+                          >
+                            <Trash2 className="w-4.5 h-4.5" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleActivate(staff.id)}
+                            className="text-slate-400 hover:text-emerald-600  rounded-lg hover:bg-emerald-50 transition-all cursor-pointer"
+                            title="Activate Staff"
+                          >
+                            <CheckCircle2 className="w-5 h-5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

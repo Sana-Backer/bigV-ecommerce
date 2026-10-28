@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { ShoppingBag, Heart } from "lucide-react";
 import Link from "next/link";
 import { addToWishlistApi } from "@/services/wishlistApi";
+import { addToCartApi } from "@/services/cartApi";
 import toast from "react-hot-toast";
 import AuthModal from "@/components/AuthModal";
 
@@ -33,6 +34,60 @@ export default function ProductCard({
   }
 
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+  const handleCartClick = async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (onAddToCart) {
+      onAddToCart(product);
+      return;
+    }
+
+    if (!product || isAddingToCart) return;
+    setIsAddingToCart(true);
+    try {
+      const payload = {
+        product_id: product.id,
+        quantity: 1,
+      };
+      if (product.default_variant_id || product.variant_id) {
+        payload.variant_id = product.default_variant_id || product.variant_id;
+      }
+      const res = await addToCartApi(payload);
+      if (res?.response || res?.isAxiosError || (res?.status && res.status >= 400)) {
+        const errorData = res?.response?.data || res?.data;
+        const errMsg = errorData?.errors?.detail || errorData?.message || errorData?.detail || "Failed to add to cart";
+        toast.error(errMsg, {
+          style: {
+            background: "#2d3150",
+            color: "#fff",
+            borderRadius: "12px",
+          },
+        });
+        return;
+      }
+
+      if (res.status === 201 || res.status === 200) {
+        window.dispatchEvent(new Event("cartUpdated"));
+        toast.success(`Added ${product?.name || "Product"} to your bag!`, {
+          style: {
+            background: "#2d3150",
+            color: "#fff",
+            borderRadius: "12px",
+          },
+        });
+      } else {
+        toast.error("Failed to add to cart");
+      }
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      toast.error("Something went wrong while adding to cart");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   const handleAddToWishlist = async (e) => {
     e.preventDefault();
@@ -104,12 +159,10 @@ export default function ProductCard({
             <Heart size={14} strokeWidth={1.5} />
           </button>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onAddToCart && onAddToCart(product);
-            }}
-            className="bg-white p-2 rounded-full text-[#2d3150] hover:scale-105 active:scale-95 transition-transform duration-300"
+            onClick={handleCartClick}
+            disabled={isAddingToCart}
+            aria-label="Add to bag"
+            className="bg-white p-2 rounded-full text-[#2d3150] hover:scale-105 active:scale-95 transition-transform duration-300 disabled:opacity-50"
           >
             <ShoppingBag size={14} strokeWidth={1.5} />
           </button>

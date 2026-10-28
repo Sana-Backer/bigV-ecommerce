@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function AboutUsPage() {
     return (
-        <main>
+        <main className="min-h-screen pb-16 md:pb-0 selection:bg-[#2d3150] selection:text-white">
             <Navbar theme="white" />
             <div className="w-full">
                 <AboutHero />

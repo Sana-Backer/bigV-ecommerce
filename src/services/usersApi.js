@@ -29,14 +29,16 @@ export const updateUserApi = async (id, reqBody) => {
   return await commonAPI("PUT", `${api}/admin/users/${id}/`, reqBody);
 };
 
-/**
- * Deactivate a user
- * @param {string} id - User ID (UUID)
- * @returns {Promise<any>} Response from backend
- */
 export const deactivateUserApi = async (id) => {
   return await commonAPI("DELETE", `${api}/admin/users/${id}/`, {});
 };
+
+export const activateUserApi = async (id, data = { is_active: true }, reqHeader) => {
+  const reqBody = typeof data === "boolean" ? { is_active: data } : { is_active: true, ...data };
+  return await commonAPI("POST", `${api}/admin/users/${id}/activate/`, reqBody, reqHeader);
+};
+
+export const adminUserActivateApi = activateUserApi;
 
 /**
  * Change a user's role (Admin only)

@@ -11,34 +11,34 @@ gsap.registerPlugin(ScrollTrigger);
 
 const features = [
   {
-    title: "100% Natural",
+    title: "100% Natural & Organic",
     description:
-      "It is a long established fact that a reader will be distracted by the readable content of a page. The purpose of using simple and clean text is to keep the focus on what truly matters — the product and its quality.",
-    icon: <Leaf className="w-7 h-7 stroke-1" />,
+      "Formulated with pure botanical extracts and certified organic ingredients that nourish your skin gently, maintaining natural balance and vitality.",
+    icon: <Leaf className="w-6 h-6 md:w-7 md:h-7 stroke-1" />,
   },
   {
-    title: "Lab Tasted Approved Formulas",
+    title: "Lab Tested & Approved",
     description:
-      "It is a long established fact that a reader will be distracted by the readable content of a page. The purpose of using simple and clean text is to keep the focus on what truly matters — the product and its quality.",
-    icon: <FlaskConical className="w-7 h-7 stroke-1" />,
+      "Clinically evaluated and dermatologist-approved formulas crafted for maximum dermal safety and proven, visible results for all skin types.",
+    icon: <FlaskConical className="w-6 h-6 md:w-7 md:h-7 stroke-1" />,
   },
   {
-    title: "100% Natural",
+    title: "Clean & Non-Toxic",
     description:
-      "It is a long established fact that a reader will be distracted by the readable content of a page. The purpose of using simple and clean text is to keep the focus on what truly matters — the product and its quality.",
-    icon: <Leaf className="w-7 h-7 stroke-1" />,
+      "Pure skincare free from parabens, sulfates, silicones, artificial fragrances, and over 1,600 questionable or irritating ingredients.",
+    icon: <Leaf className="w-6 h-6 md:w-7 md:h-7 stroke-1" />,
   },
   {
-    title: "Lab Tasted Approved Formulas",
+    title: "Cruelty-Free & Vegan",
     description:
-      "It is a long established fact that a reader will be distracted by the readable content of a page. The purpose of using simple and clean text is to keep the focus on what truly matters — the product and its quality.",
-    icon: <FlaskConical className="w-7 h-7 stroke-1" />,
+      "PETA-certified vegan formulations created with ethical practices, strictly without animal testing or animal-derived ingredients.",
+    icon: <FlaskConical className="w-6 h-6 md:w-7 md:h-7 stroke-1" />,
   },
   {
-    title: "Lab Tasted Approved Formulas",
+    title: "Sustainably Packaged",
     description:
-      "It is a long established fact that a reader will be distracted by the readable content of a page. The purpose of using simple and clean text is to keep the focus on what truly matters — the product and its quality.",
-    icon: <FlaskConical className="w-7 h-7 stroke-1" />,
+      "Housed in recyclable, eco-conscious materials responsibly produced to minimize our environmental footprint and protect the planet.",
+    icon: <Leaf className="w-6 h-6 md:w-7 md:h-7 stroke-1" />,
   },
 ];
 const kitchenEssentials = [
@@ -130,7 +130,6 @@ const BrandHighlights = () => {
       }
     );
     // KITCHEN IMAGE PARALLAX
-    // KITCHEN IMAGE PARALLAX
     gsap.utils.toArray(".kitchen-card").forEach((card, index) => {
 
       gsap.fromTo(
@@ -165,7 +164,7 @@ const BrandHighlights = () => {
         const rect = card.getBoundingClientRect();
 
         // NORMAL ACTIVE DETECTION
-        if (rect.left <= window.innerWidth * 0.35) {
+        if (rect.left <= window.innerWidth * 0.4) {
           active = index;
         }
 
@@ -245,28 +244,28 @@ const BrandHighlights = () => {
   }, []);
 
   return (
-    <section className=" py-20 lg:py-25 overflow-hidden">
+    <section className="py-14 sm:py-20 lg:py-25 overflow-hidden">
 
       <div className="mx-auto">
-        <div className="pb-16">
+        <div className="pb-12 sm:pb-16">
           {/* TITLE */}
           <div
             ref={titleRef}
-            className="mb-10 px-5 sm:px-3 lg:px-10 overflow-hidden"
+            className="mb-8 sm:mb-10 px-5 sm:px-6 lg:px-10 overflow-hidden"
           >
 
             <div className="overflow-hidden">
 
-              <h2 className=" title-reveal text-[#393F59] text-3xl sm:text-4xl lg:text-6xl leading-[100%] font-dm-serif">
+              <h2 className="title-reveal text-[#393F59] text-3xl sm:text-4xl lg:text-6xl leading-[1.1] font-dm-serif">
                 What Makes Our
               </h2>
 
             </div>
 
-            <div className="ml-12 sm:ml-20 overflow-hidden">
+            <div className="ml-4 sm:ml-12 lg:ml-20 overflow-hidden mt-1">
 
               <h2
-                className="title-reveal text-[#393F59] text-3xl sm:text-4xl lg:text-6xl leading-[100%] font-dm-serif">
+                className="title-reveal text-[#393F59] text-3xl sm:text-4xl lg:text-6xl leading-[1.1] font-dm-serif">
                 Product Stand Out
               </h2>
 
@@ -281,26 +280,30 @@ const BrandHighlights = () => {
             <div className="absolute top-[5px] left-0 right-0 h-[1px] bg-[#d8d3cf]" />
 
             <div
-              ref={featuresRef} className="flex overflow-x-auto no-scrollbar gap-8 lg:gap-16 relative cursor-grab active:cursor-grabbing select-none pb-4 px-5 sm:px-3 lg:px-10">
+              ref={featuresRef}
+              className="flex overflow-x-auto no-scrollbar gap-5 sm:gap-8 lg:gap-14 relative cursor-grab active:cursor-grabbing select-none pb-4 px-5 sm:px-6 lg:px-10 snap-x snap-mandatory scroll-smooth"
+            >
 
               {features.map((item, index) => (
                 <div
                   key={index}
-                  className="feature-card min-w-[320px] sm:min-w-[420px] lg:min-w-[520px] flex-shrink-0 relative pt-10">
+                  className="feature-card w-[80vw] max-w-[340px] sm:w-[400px] sm:min-w-[400px] lg:w-[480px] lg:min-w-[480px] flex-shrink-0 relative pt-10 snap-start"
+                >
                   {/* DOT */}
                   <div
-                    className={`absolute top-[1px] left-0 w-[10px] h-[10px] rounded-full z-10 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] origin-center ${activeFeature >= index ? ` bg-[#2d3150]  border border-[#2d3150]  scale-[1.15] shadow-[0_0_10px_rgba(45,49,80,0.18)] ` : `bg-[#f3f1ef]  border border-[#999]`}`} />
+                    className={`absolute top-[1px] left-0 w-[10px] h-[10px] rounded-full z-10 transition-all duration-500 ease-out origin-center ${activeFeature >= index ? "bg-[#2d3150] border-2 border-[#2d3150] scale-125 shadow-[0_0_8px_rgba(45,49,80,0.25)]" : "bg-[#f3f1ef] border border-[#999]"}`}
+                  />
                   {/* ICON */}
-                  <div className="mb-4 text-[#f4a261]">
+                  <div className="mb-3.5 text-[#f4a261]">
                     {item.icon}
                   </div>
                   {/* TITLE */}
-                  <h3 className="text-[#2d3150] font-DM_Serif_Display text-xl mb-3">
+                  <h3 className="text-[#2d3150] font-dm-serif text-lg sm:text-xl mb-2 sm:mb-3">
                     {item.title}
                   </h3>
 
                   {/* DESC */}
-                  <p className="text-[#7f7f7f] leading-[1.7] text-[15px] max-w-[500px]">
+                  <p className="text-[#7f7f7f] leading-relaxed text-[13px] sm:text-[14px] lg:text-[15px] max-w-[460px]">
                     {item.description}
                   </p>
 
@@ -309,12 +312,32 @@ const BrandHighlights = () => {
 
             </div>
 
-            <div className="right-6 bottom-3 z-50 flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-[#8f8f8f] pointer-events-none animate-pulse">
-              Swipe
+            {/* PROGRESS & SWIPE BAR */}
+            <div className="flex items-center justify-between px-5 sm:px-6 lg:px-10 mt-3 sm:mt-4">
+              <div className="flex items-center gap-1.5">
+                {features.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (featuresRef.current) {
+                        const card = featuresRef.current.querySelectorAll('.feature-card')[i];
+                        if (card) {
+                          card.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+                        }
+                      }
+                    }}
+                    aria-label={`Go to slide ${i + 1}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      activeFeature === i ? 'w-6 bg-[#2d3150]' : 'w-1.5 bg-[#2d3150]/20'
+                    }`}
+                  />
+                ))}
+              </div>
 
-              <span className="text-sm tracking-tighter">
-                »»
-              </span>
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-[#8f8f8f] font-medium pointer-events-none">
+                <span>Swipe</span>
+                <span className="text-sm">→</span>
+              </div>
             </div>
 
           </div>
@@ -322,18 +345,18 @@ const BrandHighlights = () => {
         </div>
 
         {/* BOTTOM */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 pt-16 lg:pt-14 pb-2 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 pt-10 sm:pt-16 lg:pt-14 pb-2 items-start">
 
           {/* LEFT */}
-          <div className="pl-10">
+          <div className="px-5 sm:px-6 lg:px-0 lg:pl-10">
 
-            <h2 className="text-[#2d3150] text-4xl sm:text-5xl lg:text-5xl leading-[1.05] font-dm-serif my-6">
+            <h2 className="text-[#2d3150] text-3xl sm:text-4xl lg:text-5xl leading-[1.1] font-dm-serif my-4 sm:my-6">
               Crafted For Confidence, <br />
               Made With Love!
             </h2>
 
             {/* SMALL IMAGE */}
-            <div className="relative w-[190px] sm:w-[220px] h-[260px] sm:h-[320px] md:h-[260px] overflow-hidden mb-5">
+            <div className="relative w-[190px] sm:w-[220px] h-[260px] sm:h-[320px] md:h-[260px] overflow-hidden mb-5 rounded-2xl">
 
               <Image
                 src="/highlight-pic1.png"
@@ -346,17 +369,17 @@ const BrandHighlights = () => {
 
             {/* TEXT */}
             <div>
-              <span className="text-[#2d3150] border rounded-xl px-3 py-0.5 text-xs mb-3">
+              <span className="text-[#2d3150] border rounded-xl px-3 py-0.5 text-xs mb-3 inline-block">
                 QUALITY
               </span>
 
-              <p className="text-[#130D40] text-2xl lg:text-2xl font-small max-w-[290px] mb-5">
+              <p className="text-[#130D40] text-xl sm:text-2xl lg:text-2xl font-small max-w-[320px] mb-4 sm:mb-5 leading-snug">
                 Only proven Ingredients,
                 quality over quantity always!
               </p>
 
-              <p className="text-[#767676] text-sm max-w-[450px] pb-3 border-b border-[#d8d3cf]">
-                It is about what we don’t put in. Squaicy clean formulas with over 1500 Negative ingredients.
+              <p className="text-[#767676] text-xs sm:text-sm max-w-[450px] pb-3 border-b border-[#d8d3cf] leading-relaxed">
+                It is about what we don’t put in. Clean formulas free from over 1,500 questionable or harmful ingredients.
               </p>
 
             </div>

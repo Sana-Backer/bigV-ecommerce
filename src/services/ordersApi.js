@@ -32,6 +32,13 @@ export const cancelAdminOrderApi = async (id, cancelData = {}) => {
   return await commonAPI("POST", `${api}/admin/orders/${id}/cancel/`, cancelData);
 };
 
+// Refund order
+export const refundAdminOrderApi = async (id, refundData = {}, reqHeader) => {
+  return await commonAPI("POST", `${api}/admin/orders/${id}/refund/`, refundData, reqHeader);
+};
+
+export const adminOrderRefundApi = refundAdminOrderApi;
+
 // ==========================================
 // Customer Facing APIs
 // ==========================================

@@ -337,17 +337,20 @@ export default function CategoryManagement() {
                         {/* Category Name & Image */}
                         <td className="py-4.5 px-6">
                           <div className="flex items-center gap-3.5">
-                            <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-100 shrink-0">
-                              <img
-                                src={category.image}
-                                alt={category.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.style.display = "none";
-                                  e.target.parentNode.className = "w-12 h-12 rounded-xl bg-[#2C3B5E]/10 flex items-center justify-center font-bold text-xs text-[#2C3B5E]";
-                                  e.target.parentNode.innerText = category.name.slice(0, 2).toUpperCase();
-                                }}
-                              />
+                            <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-100 shrink-0 font-bold text-xs text-[#2C3B5E]">
+                              {category.image ? (
+                                <img
+                                  src={category.image}
+                                  alt={category.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.parentNode.innerText = category.name ? category.name.slice(0, 2).toUpperCase() : "";
+                                  }}
+                                />
+                              ) : (
+                                <span>{category.name ? category.name.slice(0, 2).toUpperCase() : "C"}</span>
+                              )}
                             </div>
                             <div>
                               <span className="text-slate-800 font-bold block">{category.name}</span>

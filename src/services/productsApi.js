@@ -60,3 +60,21 @@ export const deleteProductVariantApi = async (variantId) => {
 export const deleteProductImageApi = async (imageId) => {
     return await commonAPI("DELETE", `${api}/images/${imageId}/`, "");
 };
+
+export const importCatalogApi = async (data, dryRun = false, reqHeader) => {
+    const formData = data instanceof FormData ? data : new FormData();
+    if (!(data instanceof FormData) && data) {
+        formData.append("file", data);
+    }
+    const query = dryRun ? "?dry_run=true" : "";
+    const headers = { "Content-Type": "multipart/form-data", ...reqHeader };
+    return await commonAPI("POST", `${api}/api/catalog/import/${query}`, formData, headers);
+};
+
+export {
+    getStockSummaryApi,
+    adjustStockApi,
+    bulkAdjustStockApi,
+    exportStockApi,
+    importStockApi,
+} from "./inventoryApi";

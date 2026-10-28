@@ -32,9 +32,9 @@ import {
   updateOrderPaymentStatusApi,
   getAdminOrderDetailApi,
   updateOrderFulfillmentStatusApi,
-  cancelAdminOrderApi
+  cancelAdminOrderApi,
+  refundAdminOrderApi
 } from "@/services/ordersApi";
-import { razorpayRefundApi } from "@/services/paymentsApi";
 
 export default function OrderManagement() {
   const [activeTab, setActiveTab] = useState("All Orders");
@@ -240,8 +240,7 @@ export default function OrderManagement() {
     if (!window.confirm("Are you sure you want to process a full refund for this order?")) return;
 
     try {
-      const response = await razorpayRefundApi({
-        order_id: order.realId,
+      const response = await refundAdminOrderApi(order.realId, {
         reason: "Refunded by admin"
       });
       if (response && (response.status === 200 || response.status === 201)) {
@@ -494,7 +493,7 @@ export default function OrderManagement() {
           </div>
           <div className="mt-1 space-y-1">
             <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
-              TODAY'S SALES
+              TODAY&apos;S SALES
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
               ₹{todaySales > 0 ? todaySales.toLocaleString() : "8,400"}
@@ -868,8 +867,12 @@ export default function OrderManagement() {
                         selectedOrder.products.map((item, idx) => (
                           <tr key={item.id || idx}>
                             <td className="py-3.5 px-4 flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 bg-slate-50 shrink-0">
-                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                              <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 bg-slate-50 shrink-0 flex items-center justify-center font-bold text-[10px] text-slate-500">
+                                {item.image ? (
+                                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>{item.name ? item.name.slice(0, 2).toUpperCase() : "P"}</span>
+                                )}
                               </div>
                               <span className="font-extrabold text-slate-800">{item.name}</span>
                             </td>

@@ -165,11 +165,19 @@ export default function Users() {
                                     <td className=" border-gray-300 text-center p-2">{user.firstName} {user.lastName}</td>
                                     <td className=" border-gray-300 text-center p-2">{user.email}</td>
                                     <td className=" border-gray-300 text-center p-2">{user.role}</td>
-                                    <td className=" border-gray-300 text-center p-2"><img
-                                        src={user.photo}
-                                        alt="User"
-                                        className="w-10 h-10 rounded-full object-cover"
-                                    /></td>
+                                    <td className=" border-gray-300 text-center p-2">
+                                        {user.photo ? (
+                                            <img
+                                                src={user.photo}
+                                                alt="User"
+                                                className="w-10 h-10 rounded-full object-cover mx-auto"
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs mx-auto">
+                                                {user.firstName?.[0] || "U"}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="text-center p-2">
                                         <div className="flex items-center justify-center gap-4">
                                             <Edit className="w-4 h-4 text-blue-500 cursor-pointer" onClick={() => {
@@ -341,8 +349,13 @@ export default function Users() {
                         </div>
                         <div className="flex flex-col gap-1 " >
                             <label>photo:</label>
-                            <img src={selectedUser?.photo} alt="photo" className="w-24 h-24 rounded-full object-cover"
-                            />
+                            {selectedUser?.photo ? (
+                                <img src={selectedUser.photo} alt="photo" className="w-24 h-24 rounded-full object-cover" />
+                            ) : (
+                                <div className="w-24 h-24 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-lg">
+                                    {selectedUser?.firstName?.[0] || "U"}
+                                </div>
+                            )}
                             <input
                                 type="file"
                                 accept="image/*"

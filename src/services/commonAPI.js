@@ -1,7 +1,7 @@
 import axios from "axios";
 import { api } from "./serverUrl";
 
-export const commonAPI = async (httpMethod, url, reqBody, reqHeader) => {
+export const commonAPI = async (httpMethod, url, reqBody, reqHeader, extraConfig = {}) => {
   let token = null;
   let refreshToken = null;
   let tokenKey = "customerToken";
@@ -33,7 +33,8 @@ export const commonAPI = async (httpMethod, url, reqBody, reqHeader) => {
     method: httpMethod,
     url,
     data: reqBody,
-    headers: headers
+    headers: headers,
+    ...extraConfig
   };
 
   try {
