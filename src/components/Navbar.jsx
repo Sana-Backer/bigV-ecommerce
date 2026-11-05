@@ -9,6 +9,7 @@ import CartDrawer from "./CartDrawer";
 import NotificationModal from "./NotificationModal";
 import WishlistDrawer from "./WishlistDrawer";
 import SearchDrawer from "./SearchDrawer";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 const menuVariants = {
@@ -56,6 +57,8 @@ const Navbar = ({ theme = "dark" }) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [user, setUser] = useState(null);
   useEffect(() => {
     const handleScroll = () => {
@@ -86,11 +89,13 @@ const Navbar = ({ theme = "dark" }) => {
     // Check if user is logged in
     const checkUser = () => {
       const storedUser = localStorage.getItem("customerUser");
-      if (storedUser) {
+      const token = localStorage.getItem("customerToken");
+      if (storedUser && token && token !== "null" && token !== "undefined") {
         try {
           setUser(JSON.parse(storedUser));
         } catch (e) {
           console.error(e);
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -123,7 +128,8 @@ const Navbar = ({ theme = "dark" }) => {
     return () => document.removeEventListener("click", handleOutsideClick);
   }, [isDropdownOpen]);
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
     const refreshToken = localStorage.getItem("customerRefreshToken") || localStorage.getItem("adminRefreshToken");
     try {
       if (refreshToken) {
@@ -140,6 +146,8 @@ const Navbar = ({ theme = "dark" }) => {
       localStorage.removeItem("adminRefreshToken");
       setUser(null);
       setIsDropdownOpen(false);
+      setIsLoggingOut(false);
+      setIsLogoutModalOpen(false);
       window.location.reload();
     }
   };
@@ -154,23 +162,28 @@ const Navbar = ({ theme = "dark" }) => {
         className={`fixed top-0 left-0 z-50 w-full transition-all duration-500 ${bgClass} ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}
       >
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
-          <div className={`flex items-center justify-between transition-all duration-500 ${isScrolled ? 'h-16' : 'h-20'}`}>
-
-            {/* Logo (Left) */}
-            <div className="flex-1 flex items-center justify-start">
-              <Link href="/" className="flex items-center">
+          <div
+            className={`flex items-center justify-between transition-all duration-500 ${isScrolled ? "h-16" : "h-20 md:h-24"
+              }`}
+          >
+            <div className="flex flex-1 items-center justify-start min-w-0">
+              <Link
+                href="/"
+                aria-label="BigS Ventures Home"
+                className="flex items-center"
+              >
                 <img
                   src="/logo.png"
                   alt="BigS Ventures"
-                  className={`w-auto object-contain transition-all duration-300 ${
-                    isScrolled ? "h-9 md:h-10" : "h-11 md:h-14"
-                  } ${isDark && !isScrolled ? "brightness-0 invert" : ""}`}
+                  className={`w-auto object-contain transition-all  duration-300 ${isScrolled
+                    ? "h-12 md:h-14"
+                    : "h-13 md:h-24 mt-5"
+                    }`}
                 />
               </Link>
             </div>
-
             {/* Nav Links (Center) */}
-            <nav className={`hidden md:flex items-center justify-center gap-10 ${textColorClass} text-sm font-medium transition-colors duration-500`}>
+            <nav className={`hidden md:flex items-center justify-center gap-10 ${textColorClass} text-md font-medium transition-colors duration-500`}>
               <Link href="/products" className="hover:opacity-80 transition-opacity">Shop</Link>
               <Link href="/about-us" className="hover:opacity-80 transition-opacity">About Us</Link>
               <Link href="/contact" className="hover:opacity-80 transition-opacity">Contact</Link>
@@ -178,14 +191,14 @@ const Navbar = ({ theme = "dark" }) => {
 
             {/* Icons (Right) */}
             <div className={`flex-1 hidden md:flex items-center justify-end gap-5 ${textColorClass} transition-colors duration-500`}>
-              <button 
+              <button
                 onClick={() => setIsSearchOpen(true)}
                 className="hover:scale-105 transition-transform"
               >
-                <Search size={18} strokeWidth={1.5} />
+                <Search size={22} strokeWidth={1.5} />
               </button>
               <button onClick={() => setIsCartOpen(true)} className="hover:scale-105 transition-transform flex items-center justify-center p-1">
-                <ShoppingBag size={18} strokeWidth={1.5} />
+                <ShoppingBag size={22} strokeWidth={1.5} />
               </button>
               <div className="relative">
                 <button
@@ -193,7 +206,7 @@ const Navbar = ({ theme = "dark" }) => {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="hover:scale-105 transition-transform flex items-center justify-center p-1"
                 >
-                  <User size={18} strokeWidth={1.5} />
+                  <User size={22} strokeWidth={1.5} />
                 </button>
 
                 {isDropdownOpen && (
@@ -252,8 +265,12 @@ const Navbar = ({ theme = "dark" }) => {
 
                         <div className="pt-6 pb-2">
                           <button
-                            onClick={handleLogout}
-                            className="w-full text-center text-[10px] font-bold text-[#f8f9fa] bg-[#9A353B] hover:bg-[#852C31] rounded-3xl py-2.5 transition-colors uppercase tracking-widest shadow-sm"
+                            type="button"
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              setIsLogoutModalOpen(true);
+                            }}
+                            className="w-full text-center text-[10px] font-bold text-[#f8f9fa] bg-[#9A353B] hover:bg-[#852C31] rounded-3xl py-2.5 transition-colors uppercase tracking-widest shadow-sm cursor-pointer"
                           >
                             Logout
                           </button>
@@ -309,7 +326,7 @@ const Navbar = ({ theme = "dark" }) => {
         </button>
         <button onClick={() => setIsProfileOpen(true)} className="flex flex-col items-center gap-1 text-[#393F59] hover:text-black transition-colors">
           <User size={22} strokeWidth={1.5} />
-          <span className="text-[10px] font-medium">Profile</span>
+          <span className="text-[10px] font-medium">{user ? "Profile" : "Account"}</span>
         </button>
       </div>
 
@@ -324,9 +341,17 @@ const Navbar = ({ theme = "dark" }) => {
 
       {/* Wishlist Drawer */}
       <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
-      
+
       {/* Search Drawer */}
       <SearchDrawer isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </>
   );
 };

@@ -13,7 +13,8 @@ const Hero = () => {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const res = await getActiveBannersApi("home_hero");
+        const device = typeof window !== "undefined" && window.innerWidth < 768 ? "mobile" : "desktop";
+        const res = await getActiveBannersApi({ placement: "home_hero", device });
         if (res.status === 200) {
           const fetchedBanners = res.data.results || res.data.data || res.data;
           setBanners(Array.isArray(fetchedBanners) ? fetchedBanners.filter(b => b.placement === "home_hero") : []);

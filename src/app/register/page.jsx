@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Mail, Lock, User, Phone, Eye, EyeOff, Loader2, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { userRegisterApi } from "@/services/auth";
+import { validatePhoneNumber, sanitizePhoneInput } from "@/lib/phoneValidation";
 
 function RegisterContent() {
   const router = useRouter();
@@ -33,9 +34,10 @@ function RegisterContent() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const finalValue = name === "phone" ? sanitizePhoneInput(value) : value;
     setFormData(prev => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : finalValue
     }));
   };
 
@@ -46,6 +48,18 @@ function RegisterContent() {
     // Basic Validation
     if (!formData.first_name || !formData.email || !formData.password || !formData.confirm_password) {
       setError("Please fill in all required fields.");
+      return;
+    }
+
+    // Phone Validation
+    if (!formData.phone || !formData.phone.trim()) {
+      setError("Please enter your phone number.");
+      return;
+    }
+
+    const phoneValidation = validatePhoneNumber(formData.phone);
+    if (!phoneValidation.isValid) {
+      setError(phoneValidation.message);
       return;
     }
 
@@ -64,7 +78,7 @@ function RegisterContent() {
         email: formData.email.trim(),
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
-        phone: formData.phone.trim(),
+        phone: phoneValidation.formatted || formData.phone.trim(),
         password: formData.password,
         confirm_password: formData.confirm_password,
         newsletter_subscribed: formData.newsletter_subscribed
@@ -137,14 +151,14 @@ function RegisterContent() {
         <div className="absolute bottom-16 left-16 right-16 text-white z-10">
           <Link href="/">
             <span className="text-sm font-semibold tracking-[0.4em] text-[#E0D8C3] uppercase mb-4 block">
-              Lumora Skincare
+              BigS Ventures
             </span>
           </Link>
           <h2 className="text-4xl xl:text-5xl font-normal leading-tight font-serif text-[#FBF9F6] mb-6">
             Begin your journey to glowing skin.
           </h2>
           <p className="text-sm text-[#D1C9B7] leading-relaxed max-w-md font-light font-actor">
-            Join the Lumora collective and receive personalized skincare consultations, early access to new releases, and curated beauty guides.
+            Join the BigS Ventures collective and receive personalized skincare consultations, early access to new releases, and curated beauty guides.
           </p>
         </div>
       </div>
@@ -161,9 +175,13 @@ function RegisterContent() {
             Back to Shop
           </Link>
           
-          <h1 className="text-xl font-normal tracking-[0.2em] text-[#2C332E] font-serif">
-            LUMORA
-          </h1>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="BigS Ventures"
+              className="h-10 md:h-12 w-auto object-contain"
+            />
+          </Link>
         </div>
 
         {/* Form Container */}
@@ -273,7 +291,7 @@ function RegisterContent() {
               {/* Phone Number */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-[#5A635B] uppercase tracking-widest">
-                  Phone Number
+                  Phone Number *
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -282,7 +300,9 @@ function RegisterContent() {
                   <input
                     type="tel"
                     name="phone"
-                    placeholder="+1 (555) 000-0000"
+                    required
+                    maxLength={16}
+                    placeholder="10-digit mobile number"
                     value={formData.phone}
                     onChange={handleChange}
                     className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"

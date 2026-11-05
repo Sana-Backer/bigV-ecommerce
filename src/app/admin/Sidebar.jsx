@@ -21,9 +21,12 @@ import {
   RefreshCcw
 } from "lucide-react";
 import { logoutApi } from "@/services/auth";
+import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 
 export default function Sidebar({ className = "", onClose }) {
   const pathname = usePathname();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   const menuItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -50,7 +53,8 @@ export default function Sidebar({ className = "", onClose }) {
     return pathname?.startsWith(href);
   };
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
     const refreshToken = localStorage.getItem("adminRefreshToken");
     try {
       if (refreshToken) {
@@ -62,6 +66,8 @@ export default function Sidebar({ className = "", onClose }) {
       localStorage.removeItem("adminToken");
       localStorage.removeItem("adminUser");
       localStorage.removeItem("adminRefreshToken");
+      setIsLoggingOut(false);
+      setIsLogoutModalOpen(false);
       window.location.href = "/admin/login";
     }
   };
@@ -134,14 +140,23 @@ export default function Sidebar({ className = "", onClose }) {
             </div>
           </div>
           <button 
-            onClick={handleLogout}
-            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
+            type="button"
+            onClick={() => setIsLogoutModalOpen(true)}
+            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
             title="Logout"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </aside>
   );
 }

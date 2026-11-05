@@ -18,6 +18,9 @@ import {
   AlertCircle,
   ExternalLink,
   Sparkles,
+  FolderTree,
+  Tag,
+  Layers,
 } from "lucide-react";
 import {
   getAdminBannersApi,
@@ -25,6 +28,7 @@ import {
   updateBannerApi,
   deleteBannerApi,
 } from "@/services/bannersApi";
+import { getCategoriesApi } from "@/services/categoryApi";
 
 // Convert ISO string from API to local "YYYY-MM-DDTHH:mm" for <input type="datetime-local" />
 const formatToInputDate = (isoString) => {
@@ -59,16 +63,20 @@ const formatDisplayDate = (isoString) => {
 };
 
 export default function BannersPage() {
-  const [activeTab, setActiveTab] = useState("home_hero"); // "home_hero" | "home_promo" | "all"
-  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "active" | "inactive" | "scheduled" | "expired"
+  const [activeTab, setActiveTab] = useState("home_hero"); // "home_hero" | "home_promo" | "shop_category" | "all"
+  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "active" | "inactive" | "scheduled" | "expired" | "live"
+  const [deviceFilter, setDeviceFilter] = useState("all"); // "all" | "desktop" | "mobile"
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState(null);
   const [banners, setBanners] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     placement: "home_hero",
+    is_mobile: false,
+    category: "",
     title: "",
     subtitle: "",
     link_url: "",
@@ -100,8 +108,21 @@ export default function BannersPage() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategoriesApi();
+      if (res && res.status === 200) {
+        const cats = res.data?.data || res.data || [];
+        setCategories(Array.isArray(cats) ? cats : []);
+      }
+    } catch (err) {
+      console.error("Failed to load categories for banners", err);
+    }
+  };
+
   useEffect(() => {
     fetchBanners();
+    fetchCategories();
   }, []);
 
   const handleOpenModal = (banner = null) => {
@@ -109,6 +130,8 @@ export default function BannersPage() {
       setEditingBanner(banner);
       setFormData({
         placement: banner.placement || "home_hero",
+        is_mobile: Boolean(banner.is_mobile),
+        category: banner.category || "",
         title: banner.title || "",
         subtitle: banner.subtitle || "",
         link_url: banner.link_url || "",
@@ -127,6 +150,8 @@ export default function BannersPage() {
       const defaultPlacement = activeTab === "all" ? "home_hero" : activeTab;
       setFormData({
         placement: defaultPlacement,
+        is_mobile: deviceFilter === "mobile",
+        category: "",
         title: "",
         subtitle: "",
         link_url: "",
@@ -163,18 +188,27 @@ export default function BannersPage() {
     }
 
     if (!editingBanner && !formData.imageFile) {
-      toast.error("Primary (Desktop) Image is required.");
+      toast.error(formData.is_mobile ? "Phone Banner Image is required." : "Desktop Banner Image is required.");
       return;
     }
 
     setSubmitting(true);
     const submitData = new FormData();
     submitData.append("placement", formData.placement);
+    submitData.append("is_mobile", formData.is_mobile ? "true" : "false");
+
+    // Category FK: only valid for shop_category placement
+    if (formData.placement === "shop_category" && formData.category) {
+      submitData.append("category", formData.category);
+    } else {
+      submitData.append("category", "");
+    }
+
     submitData.append("title", formData.title.trim());
     submitData.append("subtitle", formData.subtitle.trim());
     submitData.append("link_url", formData.link_url.trim());
     submitData.append("cta_text", formData.cta_text.trim());
-    submitData.append("is_active", formData.is_active);
+    submitData.append("is_active", formData.is_active ? "true" : "false");
     submitData.append("sort_order", Number(formData.sort_order) || 0);
 
     // Schedule dates
@@ -190,39 +224,42 @@ export default function BannersPage() {
     if (formData.imageFile) {
       submitData.append("image", formData.imageFile);
     }
-    if (formData.mobileImageFile) {
+    if (formData.mobileImageFile && !formData.is_mobile) {
       submitData.append("mobile_image", formData.mobileImageFile);
     }
 
-    const reqHeader = { "Content-Type": "multipart/form-data" };
-
     try {
+      let res;
       if (editingBanner) {
-        const res = await updateBannerApi(editingBanner.id, submitData, reqHeader);
-        if (res.status === 200) {
-          toast.success("Banner updated successfully!");
-          fetchBanners();
-          handleCloseModal();
-        }
+        res = await updateBannerApi(editingBanner.id, submitData);
       } else {
-        const res = await createBannerApi(submitData, reqHeader);
-        if (res.status === 201 || res.status === 200) {
-          toast.success("Banner created successfully!");
-          fetchBanners();
-          handleCloseModal();
-        }
+        res = await createBannerApi(submitData);
+      }
+
+      if (res && (res.status === 200 || res.status === 201)) {
+        toast.success(editingBanner ? "Banner updated successfully!" : "Banner created successfully!");
+        fetchBanners();
+        handleCloseModal();
+      } else {
+        const errorData = res?.response?.data || res?.data || {};
+        const errorMsg =
+          errorData?.errors?.category?.[0] ||
+          errorData?.errors?.end_at?.[0] ||
+          errorData?.errors?.start_at?.[0] ||
+          errorData?.errors?.image?.[0] ||
+          errorData?.errors?.detail ||
+          errorData?.category?.[0] ||
+          errorData?.end_at?.[0] ||
+          errorData?.start_at?.[0] ||
+          errorData?.image?.[0] ||
+          errorData?.detail ||
+          errorData?.message ||
+          "Failed to save banner. Please check all fields.";
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error(err);
-      const data = err.response?.data;
-      const errorMsg =
-        data?.end_at?.[0] ||
-        data?.start_at?.[0] ||
-        data?.image?.[0] ||
-        data?.detail ||
-        data?.message ||
-        "Failed to save banner. Please check fields.";
-      toast.error(errorMsg);
+      toast.error("Failed to save banner due to a network error.");
     } finally {
       setSubmitting(false);
     }
@@ -245,14 +282,14 @@ export default function BannersPage() {
 
   const handleToggleStatus = async (banner) => {
     try {
-      const submitData = new FormData();
-      submitData.append("is_active", !banner.is_active);
-      const res = await updateBannerApi(banner.id, submitData, {
-        "Content-Type": "multipart/form-data",
-      });
-      if (res.status === 200) {
+      const res = await updateBannerApi(banner.id, { is_active: !banner.is_active });
+      if (res && (res.status === 200 || res.status === 201)) {
         toast.success(`Banner ${!banner.is_active ? "activated" : "deactivated"}.`);
         fetchBanners();
+      } else {
+        const errorData = res?.response?.data || res?.data || {};
+        const errorMsg = errorData?.detail || errorData?.message || "Failed to toggle banner status.";
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error("Failed to toggle status", err);
@@ -323,6 +360,8 @@ export default function BannersPage() {
   const displayedBanners = banners
     .filter((b) => {
       if (activeTab !== "all" && b.placement !== activeTab) return false;
+      if (deviceFilter === "desktop" && b.is_mobile) return false;
+      if (deviceFilter === "mobile" && !b.is_mobile) return false;
       if (statusFilter === "all") return true;
       const status = getBannerStatus(b);
       if (statusFilter === "active") return b.is_active;
@@ -336,6 +375,7 @@ export default function BannersPage() {
 
   const totalHero = banners.filter((b) => b.placement === "home_hero").length;
   const totalPromo = banners.filter((b) => b.placement === "home_promo").length;
+  const totalShop = banners.filter((b) => b.placement === "shop_category").length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
@@ -351,7 +391,7 @@ export default function BannersPage() {
             </span>
           </div>
           <p className="text-sm font-medium text-slate-500 mt-1">
-            Configure homepage hero carousels and secondary promotional banners with scheduling
+            Configure homepage hero carousels, secondary promos, and shop category banners with device targeting & scheduling
           </p>
         </div>
         <button
@@ -364,9 +404,9 @@ export default function BannersPage() {
       </div>
 
       {/* Tabs & Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-3">
         {/* Placement Tabs */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab("home_hero")}
             className={`pb-2.5 px-4 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
@@ -396,6 +436,20 @@ export default function BannersPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab("shop_category")}
+            className={`pb-2.5 px-4 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
+              activeTab === "shop_category"
+                ? "border-[#2C3B5E] text-[#2C3B5E]"
+                : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            <span>Shop / Category Banners</span>
+            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+              {totalShop}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("all")}
             className={`pb-2.5 px-4 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
               activeTab === "all"
@@ -407,23 +461,44 @@ export default function BannersPage() {
           </button>
         </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Filter Status:
-          </label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-[#2C3B5E]"
-          >
-            <option value="all">All Statuses</option>
-            <option value="live">Live Now</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="expired">Expired</option>
-            <option value="active">Active Flag On</option>
-            <option value="inactive">Disabled Flag Off</option>
-          </select>
+        {/* Filters (Status & Device) */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Device Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Monitor className="w-3 h-3" />
+              <span>Device:</span>
+            </label>
+            <select
+              value={deviceFilter}
+              onChange={(e) => setDeviceFilter(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-[#2C3B5E]"
+            >
+              <option value="all">All Devices</option>
+              <option value="desktop">Desktop / Laptop Only</option>
+              <option value="mobile">Phone / Mobile Only</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>Status:</span>
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-[#2C3B5E]"
+            >
+              <option value="all">All Statuses</option>
+              <option value="live">Live Now</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="expired">Expired</option>
+              <option value="active">Active Flag On</option>
+              <option value="inactive">Disabled Flag Off</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -441,13 +516,20 @@ export default function BannersPage() {
             const endDisplay = formatDisplayDate(banner.end_at);
             const createdDisplay = formatDisplayDate(banner.created_at);
 
+            const placementName =
+              banner.placement === "home_hero"
+                ? "Hero"
+                : banner.placement === "home_promo"
+                ? "Promo"
+                : "Shop Page";
+
             return (
               <div
                 key={banner.id}
                 className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col group relative"
               >
                 {/* Banner Image Preview Container */}
-                <div className="relative aspect-video bg-slate-100 border-b border-slate-100 overflow-hidden">
+                <div className={`relative ${banner.is_mobile ? "aspect-3/4 sm:aspect-square" : "aspect-video"} bg-slate-100 border-b border-slate-100 overflow-hidden`}>
                   <img
                     src={banner.image || "/placeholder.png"}
                     alt={banner.title || "Banner Image"}
@@ -473,16 +555,20 @@ export default function BannersPage() {
                   </div>
 
                   {/* Top Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                  <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
                     <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                       <ArrowUpDown className="w-3 h-3" />
                       #{banner.sort_order ?? 0}
                     </span>
-                    <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-medium px-2 py-0.5 rounded-full capitalize shadow-sm">
-                      {banner.placement === "home_hero"
-                        ? "Hero"
-                        : "Promo"}
+                    <span className="bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-medium px-2 py-0.5 rounded-full shadow-sm">
+                      {placementName}
                     </span>
+                    {banner.placement === "shop_category" && (
+                      <span className="bg-indigo-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                        <FolderTree className="w-3 h-3" />
+                        <span>{banner.category_name || "All Products"}</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Live Status Pill & Quick Toggle */}
@@ -499,19 +585,31 @@ export default function BannersPage() {
 
                   {/* Device Indicators (Desktop / Mobile) */}
                   <div className="absolute bottom-3 left-3 flex items-center gap-1">
-                    <span
-                      title="Desktop view available"
-                      className="bg-black/60 backdrop-blur-md p-1 rounded-md text-white"
-                    >
-                      <Monitor className="w-3.5 h-3.5" />
-                    </span>
-                    {banner.mobile_image && (
+                    {banner.is_mobile ? (
                       <span
-                        title="Alternate mobile view configured"
-                        className="bg-emerald-600/90 backdrop-blur-md p-1 rounded-md text-white flex items-center gap-0.5 text-[9px] font-bold px-1.5"
+                        title="Phone screen banner (is_mobile=True)"
+                        className="bg-sky-600/90 backdrop-blur-md px-2 py-1 rounded-md text-white flex items-center gap-1 text-[10px] font-bold shadow-sm"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
-                        <span>Mobile</span>
+                        <span>Phone Banner</span>
+                      </span>
+                    ) : (
+                      <span
+                        title="Desktop/laptop banner (is_mobile=False)"
+                        className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-md text-white flex items-center gap-1 text-[10px] font-bold shadow-sm"
+                      >
+                        <Monitor className="w-3.5 h-3.5" />
+                        <span>Desktop Banner</span>
+                      </span>
+                    )}
+
+                    {!banner.is_mobile && banner.mobile_image && (
+                      <span
+                        title="Alternate mobile view configured"
+                        className="bg-emerald-600/90 backdrop-blur-md p-1 rounded-md text-white flex items-center gap-0.5 text-[9px] font-bold px-1.5 shadow-sm"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Alt Mobile</span>
                       </span>
                     )}
                   </div>
@@ -527,6 +625,16 @@ export default function BannersPage() {
                       {banner.subtitle || "No subtitle provided."}
                     </p>
                   </div>
+
+                  {/* Category Target Tag (for shop category banners) */}
+                  {banner.placement === "shop_category" && (
+                    <div className="flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl w-fit font-semibold">
+                      <FolderTree className="w-3.5 h-3.5 shrink-0" />
+                      <span>
+                        Target: {banner.category_name ? banner.category_name : "Default Shop (/products) & Fallback"}
+                      </span>
+                    </div>
+                  )}
 
                   {/* CTA & Link Details */}
                   {(banner.cta_text || banner.link_url) && (
@@ -583,7 +691,7 @@ export default function BannersPage() {
 
                   {/* Card Footer: Timestamps */}
                   {createdDisplay && (
-                    <div className="pt-2 text-[10px] text-slate-400 flex items-center justify-between">
+                    <div className="pt-2 text-[10px] text-slate-400 flex items-center justify-between border-t border-slate-50">
                       <span>Created {createdDisplay}</span>
                       <span className="font-mono text-[9px] uppercase text-slate-300">
                         {banner.id?.slice(0, 8)}
@@ -602,7 +710,7 @@ export default function BannersPage() {
           </div>
           <h3 className="text-lg font-bold text-slate-700">No Banners Found</h3>
           <p className="text-sm text-slate-400 font-medium mt-1 max-w-md">
-            There are no banners matching your current placement or status filters.
+            There are no banners matching your current placement, device, or status filters.
           </p>
           <button
             onClick={() => handleOpenModal()}
@@ -637,16 +745,76 @@ export default function BannersPage() {
             {/* Modal Scrollable Body */}
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <form id="banner-form" onSubmit={handleSaveBanner} className="space-y-6">
-                {/* Images Upload Section */}
+                
+                {/* 1. Device Targeting Selection */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Monitor className="w-3.5 h-3.5 text-[#2C3B5E]" />
+                      <span>Device Targeting</span>
+                    </label>
+                    <span className="text-[11px] text-slate-400">
+                      Select which device screen this banner is specifically tailored for
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, is_mobile: false }))}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                        !formData.is_mobile
+                          ? "border-[#2C3B5E] bg-[#2C3B5E]/5 text-[#2C3B5E] ring-1 ring-[#2C3B5E]"
+                          : "border-slate-200 bg-white hover:border-slate-300 text-slate-600"
+                      }`}
+                    >
+                      <div className={`p-2.5 rounded-xl ${!formData.is_mobile ? "bg-[#2C3B5E] text-white" : "bg-slate-100 text-slate-500"}`}>
+                        <Monitor className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold">Laptop / Desktop Banner</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Wide screens (Recommended: 1920x800)</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, is_mobile: true }))}
+                      className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                        formData.is_mobile
+                          ? "border-sky-600 bg-sky-50 text-sky-900 ring-1 ring-sky-600"
+                          : "border-slate-200 bg-white hover:border-slate-300 text-slate-600"
+                      }`}
+                    >
+                      <div className={`p-2.5 rounded-xl ${formData.is_mobile ? "bg-sky-600 text-white" : "bg-slate-100 text-slate-500"}`}>
+                        <Smartphone className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold">Phone / Mobile Banner</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Portrait screens (Recommended: 800x1200)</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Images Upload Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Desktop Image */}
+                  {/* Primary Banner Image */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Monitor className="w-3.5 h-3.5 text-[#2C3B5E]" />
-                        <span>Desktop Image {!editingBanner && <span className="text-rose-500">*</span>}</span>
+                        {formData.is_mobile ? (
+                          <Smartphone className="w-3.5 h-3.5 text-sky-600" />
+                        ) : (
+                          <Monitor className="w-3.5 h-3.5 text-[#2C3B5E]" />
+                        )}
+                        <span>
+                          {formData.is_mobile ? "Phone Banner Image" : "Desktop Banner Image"}{" "}
+                          {!editingBanner && <span className="text-rose-500">*</span>}
+                        </span>
                       </label>
-                      <span className="text-[10px] text-slate-400 font-medium">Recommended: 1920x800</span>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {formData.is_mobile ? "Recommended: 800x1200" : "Recommended: 1920x800"}
+                      </span>
                     </div>
 
                     <div className="relative border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex flex-col items-center justify-center text-center transition-colors hover:border-[#2C3B5E] group min-h-[200px]">
@@ -657,15 +825,15 @@ export default function BannersPage() {
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
                       {formData.imagePreview ? (
-                        <div className="relative w-full h-full p-2 aspect-video">
+                        <div className={`relative w-full h-full p-2 flex items-center justify-center ${formData.is_mobile ? "aspect-3/4" : "aspect-video"}`}>
                           <img
                             src={formData.imagePreview}
-                            alt="Desktop Preview"
+                            alt="Banner Preview"
                             className="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm"
                           />
                           <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl m-2">
                             <span className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2">
-                              <Edit className="w-3.5 h-3.5" /> Change Desktop Image
+                              <Edit className="w-3.5 h-3.5" /> Change Image
                             </span>
                           </div>
                         </div>
@@ -675,7 +843,9 @@ export default function BannersPage() {
                             <ImageIcon className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-slate-700">Click to upload desktop image</p>
+                            <p className="text-xs font-bold text-slate-700">
+                              Click to upload {formData.is_mobile ? "phone-sized" : "desktop"} banner image
+                            </p>
                             <p className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, WEBP up to 5MB</p>
                           </div>
                         </div>
@@ -683,54 +853,70 @@ export default function BannersPage() {
                     </div>
                   </div>
 
-                  {/* Mobile Image */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Mobile Image (Optional)</span>
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-medium">Recommended: 800x1200</span>
-                    </div>
+                  {/* Secondary / Mobile Alternate Image OR Mobile Notice */}
+                  {!formData.is_mobile ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Mobile Image (Optional Legacy Fallback)</span>
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-medium">Recommended: 800x1200</span>
+                      </div>
 
-                    <div className="relative border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex flex-col items-center justify-center text-center transition-colors hover:border-[#2C3B5E] group min-h-[200px]">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleMobileImageChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      {formData.mobileImagePreview ? (
-                        <div className="relative w-full h-full p-2 flex items-center justify-center">
-                          <div className="h-44 w-28 relative">
-                            <img
-                              src={formData.mobileImagePreview}
-                              alt="Mobile Preview"
-                              className="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm"
-                            />
+                      <div className="relative border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 overflow-hidden flex flex-col items-center justify-center text-center transition-colors hover:border-[#2C3B5E] group min-h-[200px]">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleMobileImageChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        {formData.mobileImagePreview ? (
+                          <div className="relative w-full h-full p-2 flex items-center justify-center">
+                            <div className="h-44 w-28 relative">
+                              <img
+                                src={formData.mobileImagePreview}
+                                alt="Mobile Alternate Preview"
+                                className="w-full h-full object-cover rounded-xl border border-slate-100 shadow-sm"
+                              />
+                            </div>
+                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl m-2">
+                              <span className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2">
+                                <Edit className="w-3.5 h-3.5" /> Change Alternate Mobile
+                              </span>
+                            </div>
                           </div>
-                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl m-2">
-                            <span className="bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-2">
-                              <Edit className="w-3.5 h-3.5" /> Change Mobile Image
-                            </span>
+                        ) : (
+                          <div className="p-6 flex flex-col items-center justify-center gap-2">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-400 group-hover:text-[#2C3B5E] transition-colors">
+                              <Smartphone className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-700">Click to upload mobile alternate</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">Falls back to desktop image if omitted</p>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className="p-6 flex flex-col items-center justify-center gap-2">
-                          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm text-slate-400 group-hover:text-[#2C3B5E] transition-colors">
-                            <Smartphone className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-700">Click to upload mobile alternate</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Falls back to desktop image if omitted</p>
-                          </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-5 flex flex-col justify-center gap-3">
+                      <div className="flex items-center gap-2 text-sky-900 font-bold text-sm">
+                        <Smartphone className="w-4 h-4 text-sky-600" />
+                        <span>Dedicated Phone Banner</span>
+                      </div>
+                      <p className="text-xs text-sky-800/80 leading-relaxed">
+                        This banner will be delivered directly to smartphones. No secondary alternate image is necessary because you are uploading a dedicated portrait image tailored for phone users.
+                      </p>
+                      <div className="bg-white rounded-xl p-3 border border-sky-200/60 text-[11px] text-slate-600 space-y-1">
+                        <p className="font-semibold text-slate-800">Pro Tip:</p>
+                        <p>Upload a tall/portrait image (aspect ratio ~9:16 or 800x1200) with clear text for optimal readability on mobile screens.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Placement & Status & Sort Order */}
+                {/* 3. Placement & Status & Sort Order */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -738,13 +924,20 @@ export default function BannersPage() {
                     </label>
                     <select
                       value={formData.placement}
-                      onChange={(e) =>
-                        setFormData({ ...formData, placement: e.target.value })
-                      }
+                      onChange={(e) => {
+                        const newPlacement = e.target.value;
+                        setFormData((prev) => ({
+                          ...prev,
+                          placement: newPlacement,
+                          // If switching away from shop_category, clear category
+                          category: newPlacement === "shop_category" ? prev.category : "",
+                        }));
+                      }}
                       className="w-full rounded-xl border border-slate-200 bg-white py-2.5 px-4 text-sm font-semibold text-slate-700 outline-none focus:border-[#2C3B5E]"
                     >
                       <option value="home_hero">Home — Hero Carousel</option>
                       <option value="home_promo">Home — Secondary Promo</option>
+                      <option value="shop_category">Shop page — Category Banner</option>
                     </select>
                   </div>
 
@@ -786,7 +979,41 @@ export default function BannersPage() {
                   </div>
                 </div>
 
-                {/* Title & CTA */}
+                {/* 4. Category Selector (Only for Shop Category Placement) */}
+                {formData.placement === "shop_category" && (
+                  <div className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-4.5 space-y-3 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-indigo-950 uppercase tracking-wider flex items-center gap-2">
+                        <FolderTree className="w-4 h-4 text-indigo-600" />
+                        <span>Category Targeting</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2.5 py-0.5 rounded-full">
+                        Shop Page
+                      </span>
+                    </div>
+
+                    <select
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-indigo-200 bg-white py-2.5 px-4 text-sm font-semibold text-slate-800 outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 shadow-xs"
+                    >
+                      <option value="">Default Shop Banner — All Products (/products & Fallback)</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} {cat.slug ? `(Slug: ${cat.slug})` : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    <p className="text-[11px] text-indigo-900/80 leading-relaxed">
+                      Select which category’s shop page this banner belongs to. If left blank, it will serve as the default banner for the main <strong>/products</strong> page and act as the fallback for any categories without an individual banner.
+                    </p>
+                  </div>
+                )}
+
+                {/* 5. Title & CTA */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -819,7 +1046,7 @@ export default function BannersPage() {
                   </div>
                 </div>
 
-                {/* Subtitle */}
+                {/* 6. Subtitle */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Subtitle / Description
@@ -835,7 +1062,7 @@ export default function BannersPage() {
                   />
                 </div>
 
-                {/* Destination Link */}
+                {/* 7. Destination Link */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Destination URL
@@ -859,7 +1086,7 @@ export default function BannersPage() {
                   </p>
                 </div>
 
-                {/* Scheduling Section (start_at and end_at) */}
+                {/* 8. Scheduling Section (start_at and end_at) */}
                 <div className="bg-[#FCFAF7] border border-[#E6E4DD] rounded-2xl p-5 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">

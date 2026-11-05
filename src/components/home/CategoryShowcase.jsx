@@ -18,6 +18,8 @@ const categories = [
     subtitle: "Products",
     slug: "powder",
     banner: "/category3.png",
+    defaultImage: "/category3.png",
+    image: null,
     bgColor: "bg-white",
     products: [],
   },
@@ -26,6 +28,8 @@ const categories = [
     subtitle: "Products",
     slug: "beauty",
     banner: "/category1.jpg",
+    defaultImage: "/category1.jpg",
+    image: null,
     bgColor: "bg-[#F0D4D0]",
     products: [],
   },
@@ -35,6 +39,8 @@ const categories = [
     subtitle: "Products",
     slug: "kitchen",
     banner: "/category2.jpg",
+    defaultImage: "/category2.jpg",
+    image: null,
     bgColor: "bg-[#E6DCCF]",
     products: [],
   },
@@ -57,7 +63,14 @@ const CategoryShowcase = () => {
               const data = res.data?.data || res.data;
               if (data) {
                 if (data.category && data.category.image) {
-                  updatedCategories[i].banner = data.category.image;
+                  const categoryImage = data.category.image.startsWith("http")
+                    ? data.category.image
+                    : `${BASEURL.endsWith("/") ? BASEURL.slice(0, -1) : BASEURL}${data.category.image.startsWith("/") ? "" : "/"}${data.category.image}`;
+                  updatedCategories[i].banner = categoryImage;
+                  updatedCategories[i].image = categoryImage;
+                } else {
+                  updatedCategories[i].image = updatedCategories[i].defaultImage;
+                  updatedCategories[i].banner = updatedCategories[i].defaultImage;
                 }
                 if (data.products && data.products.length > 0) {
                   updatedCategories[i].products = data.products.map(p => ({
@@ -396,7 +409,7 @@ const CategoryShowcase = () => {
               <div className="parallax-image absolute inset-0">
 
                 <Image
-                  src={category.banner || "/placeholder.png"}
+                  src={category.image || category.banner || category.defaultImage || "/category3.png"}
                   alt={category.title}
                   fill
                   className="object-cover scale-110"

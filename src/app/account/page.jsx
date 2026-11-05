@@ -9,11 +9,14 @@ import OrdersTab from "./components/OrdersTab";
 import SecurityTab from "./components/SecurityTab";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import LogoutConfirmModal from "@/components/LogoutConfirmModal";
 
 function AccountPageContent() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -45,9 +48,12 @@ function AccountPageContent() {
     }
   };
 
-  const handleLogout = () => {
+  const confirmLogout = () => {
+    setIsLoggingOut(true);
     localStorage.removeItem("customerToken");
+    localStorage.removeItem("customerUser");
     localStorage.removeItem("customerRefreshToken");
+    window.dispatchEvent(new Event("storage"));
     window.location.href = "/";
   };
 
@@ -121,8 +127,9 @@ function AccountPageContent() {
 
             <div className="md:pt-6 md:mt-6 md:border-t border-[#E6E4DD] shrink-0">
               <button
-                onClick={handleLogout}
-                className="shrink-0 md:w-full flex items-center gap-3 px-5 py-3 md:py-4 rounded-2xl transition-all font-bold text-left text-rose-500 hover:bg-rose-50 snap-start"
+                type="button"
+                onClick={() => setIsLogoutModalOpen(true)}
+                className="shrink-0 md:w-full flex items-center gap-3 px-5 py-3 md:py-4 rounded-2xl transition-all font-bold text-left text-rose-500 hover:bg-rose-50 snap-start cursor-pointer"
               >
                 <LogOut size={20} className="shrink-0" />
                 <span className="whitespace-nowrap">Sign Out</span>
@@ -140,6 +147,14 @@ function AccountPageContent() {
 
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </div>
   );
 }

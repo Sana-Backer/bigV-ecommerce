@@ -2,9 +2,30 @@ import { commonAPI } from "./commonAPI";
 import { api } from "./serverUrl";
 
 // Fetch active banners for the storefront (Public API)
-export const getActiveBannersApi = async (placement = "") => {
-  const query = placement ? `?placement=${encodeURIComponent(placement)}` : "";
-  return await commonAPI("GET", `${api}/banners/${query}`, "", "");
+
+export const getActiveBannersApi = async (param = "") => {
+  const searchParams = new URLSearchParams();
+
+  if (typeof param === "string") {
+    if (param) {
+      searchParams.append("placement", param);
+    }
+  } else if (param && typeof param === "object") {
+    Object.entries(param).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        searchParams.append(key, String(value));
+      }
+    });
+  }
+
+  const query = searchParams.toString();
+
+  return await commonAPI(
+    "GET",
+    `${api}/banners/${query ? `?${query}` : ""}`,
+    "",
+    ""
+  );
 };
 
 // Admin APIs for banners

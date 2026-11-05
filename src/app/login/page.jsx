@@ -130,9 +130,13 @@ function LoginContent() {
             Back to Shop
           </Link>
           
-          <h1 className="text-xl font-normal tracking-[0.2em] text-[#2C332E] font-serif">
-            BIGSVENTURE
-          </h1>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="BigS Ventures"
+              className="h-10 md:h-12 w-auto object-contain"
+            />
+          </Link>
         </div>
 
         {/* Form Container */}

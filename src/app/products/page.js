@@ -230,7 +230,7 @@ function ProductsContent() {
     <div className="min-h-screen flex flex-col selection:bg-[#2d3150] selection:text-white">
       <Navbar />
       {/* Main Product Hero section */}
-      <ProductHero />
+      <ProductHero category={selectedCategory} />
 
       {/* Product list section wrapper */}
       <ProductLayout
