@@ -1,6 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   allowedDevOrigins: ["192.168.1.17"],
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://159.65.146.87/api/:path*",
+      },
+    ];
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -15,9 +24,14 @@ const nextConfig = {
         hostname: 'localhost',
         port: '8000',
         pathname: '/media/**',
-      }
-    ]
-  }
+      },
+      {
+        protocol: 'http',
+        hostname: '159.65.146.87',
+        pathname: '/media/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
