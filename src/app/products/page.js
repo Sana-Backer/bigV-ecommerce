@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductHero from "./components/ProductHero";
 import ProductLayout from "./components/ProductLayout";
@@ -14,7 +14,7 @@ import { getCategoriesApi } from "@/services/categoryApi";
 import { toast } from "react-hot-toast";
 import { CheckCircle2, X } from "lucide-react";
 
-export default function ProductsPage() {
+function ProductsContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState([]);
   const [categoriesList, setCategoriesList] = useState([]);
@@ -175,7 +175,7 @@ export default function ProductsPage() {
       </div>
     ), { duration: 3000 });
   };
-
+  
   return (
     <div className="min-h-screen flex flex-col selection:bg-[#2d3150] selection:text-white">
       <Navbar />
@@ -217,3 +217,10 @@ export default function ProductsPage() {
     </div>
   );
 }
+export default function ProductsPage() {
+    return (
+      <Suspense fallback={<div className="min-h-screen" />}>
+        <ProductsContent />
+      </Suspense>
+    );
+  }
