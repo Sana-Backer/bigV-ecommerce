@@ -39,7 +39,7 @@ export default function OrderSuccessPage() {
     <div className="min-h-screen flex flex-col bg-[#FCFAF7] font-sans">
       <Navbar />
       
-      <main className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-3xl mx-auto w-full">
+      <main className="flex-1 flex flex-col items-center justify-center pt-28 pb-12 px-6 text-center max-w-3xl mx-auto w-full">
         <div className="bg-white p-10 md:p-14 rounded-2xl border border-[#E6E4DD] shadow-lg w-full relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#2C332E]"></div>
           

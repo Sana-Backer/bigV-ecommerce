@@ -27,19 +27,19 @@ export default function TheFaces() {
       <div className="max-w-[1400px] mx-auto px-6">
         
         {/* Header */}
-        <div className="mb-10">
-          <h2 className="text-4xl md:text-4xl text-[#130D40] mb-3 tracking-tight">
-            The <span className="font-yellowtail text-xl md:text-4xl font-normal text- px-1">faces</span> behind it
+        <div className="mb-8 md:mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl text-[#130D40] mb-3 tracking-tight">
+            The <span className="font-yellowtail text-3xl sm:text-4xl md:text-5xl font-normal text-[#130D40] px-1">faces</span> behind it
           </h2>
-          <p className="text-[11px] md:text-xs tracking-tight text-[#767676] uppercase ">
+          <p className="text-[11px] sm:text-xs tracking-tight text-[#767676] uppercase">
             We built Aurae with people who care deeply about what they make.
           </p>
         </div>
 
         {/* Team Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
           {teamMembers.map((member, index) => (
-            <div key={index} className="relative aspect-[3/3] overflow-hidden group bg-stone-200">
+            <div key={index} className="relative aspect-square overflow-hidden group bg-stone-200 rounded-2xl md:rounded-3xl shadow-sm">
               <img 
                 src={member.image} 
                 alt={`${member.firstName} ${member.lastName}`} 
@@ -49,8 +49,8 @@ export default function TheFaces() {
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a1c2e]/80 via-[#1a1c2e]/20 to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
               
               {/* Name Overlay */}
-              <div className="absolute bottom-6 left-8 z-10 text-white">
-                <h3 className="text-3xl md:text-[40px] font-medium leading-[1.1] tracking-tight">
+              <div className="absolute bottom-5 sm:bottom-6 left-5 sm:left-7 z-10 text-white">
+                <h3 className="text-2xl sm:text-3xl md:text-2xl lg:text-3xl xl:text-[38px] font-medium leading-[1.1] tracking-tight">
                   {member.firstName}<br />
                   {member.lastName}
                 </h3>

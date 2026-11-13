@@ -1,9 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User, Mail, Phone, Loader2, X, CheckCircle, AlertCircle, LogOut } from "lucide-react";
+import Link from "next/link";
+import {
+  User,
+  Mail,
+  Phone,
+  Loader2,
+  X,
+  CheckCircle,
+  AlertCircle,
+  LogOut,
+  Package,
+  Heart,
+  ShieldCheck,
+  ChevronRight,
+  LogIn,
+  UserPlus
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getMeApi, updateMeApi, logoutApi } from "@/services/auth";
+import LogoutConfirmModal from "./LogoutConfirmModal";
+import { validatePhoneNumber, sanitizePhoneInput } from "@/lib/phoneValidation";
 
 export default function ProfileDrawer({ isOpen, onClose }) {
   const [formData, setFormData] = useState({
@@ -13,27 +31,32 @@ export default function ProfileDrawer({ isOpen, onClose }) {
     phone: "",
   });
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [message, setMessage] = useState(null); // { type: "success" | "error", text: "..." }
 
   useEffect(() => {
     if (!isOpen) return; // Only fetch when opened
 
     const fetchProfile = async () => {
-      setInitialLoading(true);
       setMessage(null);
+      const token = typeof window !== "undefined" ? localStorage.getItem("customerToken") : null;
       
-      const token = localStorage.getItem("customerToken");
-      if (!token) {
+      if (!token || token === "null" || token === "undefined") {
+        setIsAuthenticated(false);
         setInitialLoading(false);
         return;
       }
 
+      setInitialLoading(true);
+
       try {
         const response = await getMeApi();
         if (response && response.status === 200) {
-          const userData = response.data.data || response.data;
+          const userData = response.data?.data || response.data;
           setFormData({
             first_name: userData.first_name || "",
             last_name: userData.last_name || "",
@@ -41,11 +64,47 @@ export default function ProfileDrawer({ isOpen, onClose }) {
             phone: userData.phone || "",
           });
           localStorage.setItem("customerUser", JSON.stringify(userData));
+          setIsAuthenticated(true);
         } else {
-          setMessage({ type: "error", text: "Failed to load profile details." });
+          const status = response?.status || response?.response?.status;
+          if (status === 401) {
+            // Token is invalid/expired
+            localStorage.removeItem("customerToken");
+            localStorage.removeItem("customerUser");
+            localStorage.removeItem("customerRefreshToken");
+            window.dispatchEvent(new Event("storage"));
+            setIsAuthenticated(false);
+          } else {
+            setMessage({ type: "error", text: "Failed to load profile details." });
+            setIsAuthenticated(true);
+          }
         }
       } catch (error) {
-        setMessage({ type: "error", text: "Failed to connect to the server." });
+        const status = error?.status || error?.response?.status;
+        if (status === 401) {
+          localStorage.removeItem("customerToken");
+          localStorage.removeItem("customerUser");
+          localStorage.removeItem("customerRefreshToken");
+          window.dispatchEvent(new Event("storage"));
+          setIsAuthenticated(false);
+        } else {
+          setMessage({ type: "error", text: "Failed to connect to the server." });
+          // If we had stored user info, keep authenticated so user can still see cached info
+          if (localStorage.getItem("customerUser")) {
+            try {
+              const cached = JSON.parse(localStorage.getItem("customerUser"));
+              setFormData({
+                first_name: cached.first_name || "",
+                last_name: cached.last_name || "",
+                email: cached.email || "",
+                phone: cached.phone || "",
+              });
+              setIsAuthenticated(true);
+            } catch (e) {
+              setIsAuthenticated(false);
+            }
+          }
+        }
       } finally {
         setInitialLoading(false);
       }
@@ -56,13 +115,24 @@ export default function ProfileDrawer({ isOpen, onClose }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const finalValue = name === "phone" ? sanitizePhoneInput(value) : value;
+    setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsUpdating(true);
     setMessage(null);
+
+    // Validate phone number if provided
+    if (formData.phone && formData.phone.trim()) {
+      const phoneVal = validatePhoneNumber(formData.phone);
+      if (!phoneVal.isValid) {
+        setMessage({ type: "error", text: phoneVal.message });
+        setIsUpdating(false);
+        return;
+      }
+    }
 
     try {
       const payload = {
@@ -75,7 +145,7 @@ export default function ProfileDrawer({ isOpen, onClose }) {
 
       if (response && response.status === 200) {
         setMessage({ type: "success", text: "Profile updated successfully!" });
-        const updatedUser = response.data.data || response.data;
+        const updatedUser = response.data?.data || response.data;
         const newUserState = { ...JSON.parse(localStorage.getItem("customerUser") || "{}"), ...updatedUser };
         localStorage.setItem("customerUser", JSON.stringify(newUserState));
         window.dispatchEvent(new Event("storage"));
@@ -94,7 +164,8 @@ export default function ProfileDrawer({ isOpen, onClose }) {
     }
   };
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
     const refreshToken = localStorage.getItem("customerRefreshToken") || localStorage.getItem("adminRefreshToken");
     try {
       if (refreshToken) {
@@ -107,6 +178,8 @@ export default function ProfileDrawer({ isOpen, onClose }) {
       localStorage.removeItem("customerUser");
       localStorage.removeItem("customerRefreshToken");
       window.dispatchEvent(new Event("storage"));
+      setIsLoggingOut(false);
+      setIsLogoutModalOpen(false);
       window.location.reload();
     }
   };
@@ -136,11 +209,12 @@ export default function ProfileDrawer({ isOpen, onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-[#E6E4DD] bg-white">
               <h2 className="text-xl font-normal text-[#2C332E] font-serif">
-                My Profile
+                {isAuthenticated ? "My Profile" : "Account"}
               </h2>
               <button
                 onClick={onClose}
-                className="p-2 text-[#5A635B] hover:text-black hover:bg-[#F5F4F0] rounded-full transition-colors"
+                className="p-2 text-[#5A635B] hover:text-black hover:bg-[#F5F4F0] rounded-full transition-colors cursor-pointer"
+                aria-label="Close drawer"
               >
                 <X size={20} />
               </button>
@@ -149,11 +223,111 @@ export default function ProfileDrawer({ isOpen, onClose }) {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {initialLoading ? (
-                <div className="flex items-center justify-center h-40">
+                <div className="flex items-center justify-center h-48">
                   <Loader2 className="h-6 w-6 animate-spin text-[#2C332E]" />
                 </div>
+              ) : !isAuthenticated ? (
+                /* Unauthenticated View: Sign In or Create Account */
+                <div className="flex flex-col justify-between h-full space-y-6">
+                  <div>
+                    {/* Welcome Card */}
+                    <div className="text-center py-7 px-5 bg-white rounded-2xl border border-[#E6E4DD] shadow-sm mb-6">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F5F4F0] flex items-center justify-center text-[#353B50] shadow-inner">
+                        <User size={30} strokeWidth={1.5} />
+                      </div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#8C968D] mb-1.5">
+                        Welcome to BigS Ventures
+                      </p>
+                      <h3 className="text-xl font-serif text-[#2C332E] font-medium mb-2">
+                        Sign In or Create Account
+                      </h3>
+                      <p className="text-xs text-[#7B827C] leading-relaxed max-w-xs mx-auto mb-6">
+                        Sign in to track orders, manage your wishlist, and enjoy a personalized shopping experience.
+                      </p>
+
+                      {/* Action Buttons */}
+                      <div className="space-y-3">
+                        <Link
+                          href="/login"
+                          onClick={onClose}
+                          className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-widest bg-[#353B50] text-white hover:bg-[#232736] transition-all shadow-md active:scale-[0.99]"
+                        >
+                          <LogIn size={16} />
+                          <span>Sign In</span>
+                        </Link>
+                        <Link
+                          href="/register"
+                          onClick={onClose}
+                          className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl text-xs font-bold uppercase tracking-widest border border-[#353B50]/30 text-[#353B50] bg-white hover:bg-[#F5F4F0] transition-all active:scale-[0.99]"
+                        >
+                          <UserPlus size={16} />
+                          <span>Create an Account</span>
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* Member Benefits */}
+                    <div className="bg-white rounded-2xl border border-[#E6E4DD] p-4 space-y-3.5 shadow-sm">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#8C968D] px-1">
+                        Member Benefits
+                      </p>
+                      <div className="flex items-center gap-3 text-xs">
+                        <div className="w-8 h-8 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 text-[#353B50]">
+                          <Package size={16} strokeWidth={1.75} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#2C332E]">Order Tracking</p>
+                          <p className="text-[11px] text-[#7B827C]">View real-time delivery status and past orders</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <div className="w-8 h-8 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 text-[#353B50]">
+                          <Heart size={16} strokeWidth={1.75} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#2C332E]">Saved Wishlist</p>
+                          <p className="text-[11px] text-[#7B827C]">Keep your favorite items saved across devices</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <div className="w-8 h-8 rounded-full bg-[#F5F4F0] flex items-center justify-center shrink-0 text-[#353B50]">
+                          <ShieldCheck size={16} strokeWidth={1.75} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#2C332E]">Fast & Secure Checkout</p>
+                          <p className="text-[11px] text-[#7B827C]">Save delivery addresses for easy one-click checkout</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-[#E6E4DD] text-center">
+                    <p className="text-xs text-[#7B827C]">
+                      Need assistance?{" "}
+                      <Link href="/contact" onClick={onClose} className="font-semibold text-[#353B50] hover:underline">
+                        Contact Support
+                      </Link>
+                    </p>
+                  </div>
+                </div>
               ) : (
+                /* Authenticated View: Profile Form */
                 <>
+                  <div className="mb-5 flex items-center justify-between bg-white p-3.5 rounded-xl border border-[#E6E4DD]">
+                    <div>
+                      <p className="text-xs font-semibold text-[#2C332E]">View All Orders & Details</p>
+                      <p className="text-[11px] text-[#7B827C]">Access complete account dashboard</p>
+                    </div>
+                    <Link
+                      href="/account"
+                      onClick={onClose}
+                      className="text-xs font-bold text-[#353B50] hover:underline flex items-center gap-1 shrink-0"
+                    >
+                      <span>Dashboard</span>
+                      <ChevronRight size={14} />
+                    </Link>
+                  </div>
+
                   <div className="mb-6">
                     <p className="text-sm text-[#7B827C] font-actor leading-relaxed">
                       Update your account details below. Your email address is used for login and cannot be changed here.
@@ -282,19 +456,30 @@ export default function ProfileDrawer({ isOpen, onClose }) {
               )}
             </div>
 
-            {/* Footer / Logout */}
-            <div className="p-6 border-t border-[#E6E4DD] bg-white">
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 py-3 text-xs font-bold text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors uppercase tracking-widest"
-              >
-                <LogOut size={16} />
-                <span>Log Out</span>
-              </button>
-            </div>
+            {/* Footer / Logout (Only shown if authenticated) */}
+            {isAuthenticated && (
+              <div className="p-6 border-t border-[#E6E4DD] bg-white">
+                <button
+                  type="button"
+                  onClick={() => setIsLogoutModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3 text-xs font-bold text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors uppercase tracking-widest cursor-pointer"
+                >
+                  <LogOut size={16} />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
           </motion.div>
         </>
       )}
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </AnimatePresence>
   );
 }

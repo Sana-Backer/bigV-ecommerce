@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { getMyProfileApi, updateMyProfileApi, updateMeApi } from "@/services/auth";
 import { Loader2, Save } from "lucide-react";
+import { validatePhoneNumber, sanitizePhoneInput } from "@/lib/phoneValidation";
 
 export default function ProfileTab({ user, fetchUser }) {
   const [loading, setLoading] = useState(false);
@@ -51,13 +52,25 @@ export default function ProfileTab({ user, fetchUser }) {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    const finalValue = name === "phone" ? sanitizePhoneInput(value) : value;
+    setFormData({ ...formData, [name]: finalValue });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage("");
+
+    // Validate phone number if entered
+    if (formData.phone && formData.phone.trim()) {
+      const phoneVal = validatePhoneNumber(formData.phone);
+      if (!phoneVal.isValid) {
+        setMessage(phoneVal.message);
+        return;
+      }
+    }
+
+    setLoading(true);
 
     try {
       // 1. Update basic user info (first_name, last_name, phone)

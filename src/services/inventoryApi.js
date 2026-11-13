@@ -19,19 +19,27 @@ export const adjustStockApi = async (data, reqHeader) => {
 };
 
 export const bulkAdjustStockApi = async (data, reqHeader) => {
-  return await commonAPI("POST", `${INVENTORY_BASE_URL}/stock/bulk-adjust/`, data, reqHeader);
+  const payload = Array.isArray(data) ? { items: data } : data;
+  return await commonAPI("POST", `${INVENTORY_BASE_URL}/stock/bulk-adjust/`, payload, reqHeader);
 };
 
 export const setStockApi = async (data, reqHeader) => {
   return await commonAPI("POST", `${INVENTORY_BASE_URL}/stock/set/`, data, reqHeader);
 };
 
-export const exportStockApi = async (reqHeader) => {
-  return await commonAPI("GET", `${INVENTORY_BASE_URL}/stock/export/`, "", reqHeader);
+export const exportStockApi = async (query = "", reqHeader) => {
+  const qs = query ? (query.startsWith("?") ? query : `?${query}`) : "";
+  return await commonAPI("GET", `${INVENTORY_BASE_URL}/stock/export/${qs}`, "", reqHeader, { responseType: "blob" });
 };
 
-export const importStockApi = async (data, reqHeader) => {
-  return await commonAPI("POST", `${INVENTORY_BASE_URL}/stock/import/`, data, reqHeader);
+export const importStockApi = async (data, dryRun = false, reqHeader) => {
+  const formData = data instanceof FormData ? data : new FormData();
+  if (!(data instanceof FormData) && data) {
+    formData.append("file", data);
+  }
+  const query = dryRun ? "?dry_run=true" : "";
+  const headers = { "Content-Type": "multipart/form-data", ...reqHeader };
+  return await commonAPI("POST", `${INVENTORY_BASE_URL}/stock/import/${query}`, formData, headers);
 };
 
 export const getMovementsApi = async (reqHeader) => {

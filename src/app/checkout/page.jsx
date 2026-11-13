@@ -10,7 +10,7 @@ import { getCartApi } from "@/services/cartApi";
 import { razorpayCreateOrderApi, razorpayVerifyPaymentApi } from "@/services/paymentsApi";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -117,10 +117,14 @@ export default function CheckoutPage() {
     
     if (error) {
       setFieldErrors(prev => ({ ...prev, [fieldKey]: error }));
+      setError(error);
     } else {
       setFieldErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[fieldKey];
+        if (Object.keys(newErrors).length === 0) {
+          setError(null);
+        }
         return newErrors;
       });
     }
@@ -165,6 +169,8 @@ export default function CheckoutPage() {
 
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
+        const firstErrMsg = Object.values(errors).find(msg => typeof msg === 'string') || "Please fill in all required fields.";
+        setError(firstErrMsg);
         setSubmitting(false);
         return;
       }
@@ -314,8 +320,8 @@ export default function CheckoutPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-[#FCFAF7]">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center">
+        <Navbar theme="white" />
+        <div className="flex-1 flex items-center justify-center pt-20">
           <Loader2 className="animate-spin h-8 w-8 text-[#2C332E]" />
         </div>
         <Footer />
@@ -326,9 +332,9 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#FCFAF7] font-sans">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <Navbar />
+      <Navbar theme="white" />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-12">
         <h1 className="text-3xl font-serif text-[#2C332E] mb-8">Checkout</h1>
 
         {error && (
@@ -365,7 +371,18 @@ export default function CheckoutPage() {
                       type="tel"
                       name="phone"
                       value={contactInfo.phone}
-                      onChange={(e) => setContactInfo({ ...contactInfo, phone: e.target.value.replace(/\D/g, '') })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setContactInfo(prev => ({ ...prev, phone: val }));
+                        if (val.length === 10) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.phone;
+                            if (Object.keys(newErrors).length === 0) setError(null);
+                            return newErrors;
+                          });
+                        }
+                      }}
                       onBlur={handleBlur}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none bg-[#FCFAF7] transition-colors ${fieldErrors.phone ? 'border-red-500 focus:border-red-500' : 'border-[#E6E4DD] focus:border-[#2C332E]'}`}
                     />
@@ -579,6 +596,15 @@ export default function CheckoutPage() {
               >
                 {submitting ? <Loader2 size={16} className="animate-spin" /> : createdOrderId ? "Retry Payment" : "Confirm Order"}
               </button>
+
+              {(error || Object.values(fieldErrors).find(msg => typeof msg === 'string')) && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2.5 text-red-600 text-xs font-medium">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                  <span className="leading-snug">
+                    {error || Object.values(fieldErrors).find(msg => typeof msg === 'string')}
+                  </span>
+                </div>
+              )}
 
               <p className="text-[10px] text-center text-[#7B827C] mt-3">
                 By placing your order, you agree to our Terms and Conditions.

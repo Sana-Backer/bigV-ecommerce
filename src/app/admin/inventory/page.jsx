@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import {
   Box,
@@ -17,11 +17,21 @@ import {
   Sliders,
   ChevronLeft,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  Loader2,
+  Info
 } from "lucide-react";
-import { getStockListApi, setStockApi } from "@/services/inventoryApi";
-import api from "@/services/serverUrl";
-import { commonAPI } from "@/services/commonAPI";
+import {
+  getStockListApi,
+  setStockApi,
+  getStockSummaryApi,
+  adjustStockApi,
+  exportStockApi,
+  importStockApi
+} from "@/services/inventoryApi";
 
 export default function InventoryManagement() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,6 +49,24 @@ export default function InventoryManagement() {
     location: "",
     unitPrice: 0
   });
+
+  // Adjust modal mode ("set" count vs "+/-" adjustment)
+  const [adjustMode, setAdjustMode] = useState("set"); // "set" | "adjust"
+  const [adjustmentChange, setAdjustmentChange] = useState(0);
+  const [movementType, setMovementType] = useState("adjustment");
+  const [adjustmentNote, setAdjustmentNote] = useState("");
+
+  // Backend Stock Summary
+  const [stockSummary, setStockSummary] = useState(null);
+
+  // Stocktake Import Modal State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [isDryRun, setIsDryRun] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const importFileInputRef = useRef(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,8 +126,21 @@ export default function InventoryManagement() {
     }
   };
 
+  const fetchSummary = async () => {
+    try {
+      const response = await getStockSummaryApi();
+      if (response && response.status === 200 && response.data?.status === "success") {
+        setStockSummary(response.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load stock summary:", err);
+    }
+  };
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInventory();
+    fetchSummary();
   }, []);
 
   // Filter Logic
@@ -107,7 +148,7 @@ export default function InventoryManagement() {
     const matchesSearch = 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.location && item.location.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesCategory = 
       selectedCategory === "All Categories" ||
@@ -134,89 +175,187 @@ export default function InventoryManagement() {
     setSelectedItem(item);
     setEditFormData({
       quantity: item.quantity,
-      location: item.location,
+      location: item.location || "",
       unitPrice: item.unitPrice
     });
+    setAdjustMode("set");
+    setAdjustmentChange(0);
+    setMovementType("adjustment");
+    setAdjustmentNote("");
     setIsEditModalOpen(true);
     setIsActionMenuOpen(null);
   };
 
-  // Edit stock level submit handler
+  // Edit stock level submit handler (supports both Set Count and Relative +/- Adjustment)
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const reqHeader = {
-        "Content-Type": "application/json"
-      };
+      if (adjustMode === "adjust") {
+        const changeNum = parseInt(adjustmentChange, 10);
+        if (!changeNum || changeNum === 0) {
+          toast.error("Adjustment change cannot be 0.");
+          setIsLoading(false);
+          return;
+        }
 
-      const payload = {
-        quantity: parseInt(editFormData.quantity) || 0,
-        note: "Manual update from admin panel"
-      };
+        const payload = {
+          change: changeNum,
+          movement_type: movementType,
+          note: adjustmentNote || "Manual adjustment from admin panel",
+          reference: "ADMIN-ADJUST"
+        };
 
-      if (selectedItem.variant_id) {
-        payload.variant_id = selectedItem.variant_id;
+        if (selectedItem.variant_id) {
+          payload.variant_id = selectedItem.variant_id;
+        } else {
+          payload.product_id = selectedItem.product_id;
+        }
+
+        const response = await adjustStockApi(payload);
+        if (response && (response.status === 200 || response.status === 201)) {
+          toast.success("Stock adjustment applied successfully.");
+          await fetchInventory();
+          await fetchSummary();
+          setIsEditModalOpen(false);
+          setSelectedItem(null);
+        } else {
+          toast.error(response?.data?.message || "Failed to adjust stock.");
+        }
       } else {
-        payload.product_id = selectedItem.product_id;
-      }
+        const payload = {
+          quantity: parseInt(editFormData.quantity, 10) || 0,
+          note: adjustmentNote || "Manual stock count from admin panel"
+        };
 
-      const response = await setStockApi(payload, reqHeader);
+        if (selectedItem.variant_id) {
+          payload.variant_id = selectedItem.variant_id;
+        } else {
+          payload.product_id = selectedItem.product_id;
+        }
 
-      if (response && (response.status === 200 || response.status === 201)) {
-        toast.success("Inventory record updated successfully.");
-        // Refresh inventory from server to ensure accuracy
-        await fetchInventory();
-        setIsEditModalOpen(false);
-        setSelectedItem(null);
-      } else {
-        toast.error("Failed to update inventory.");
+        const response = await setStockApi(payload);
+        if (response && (response.status === 200 || response.status === 201)) {
+          toast.success("Inventory stock quantity set successfully.");
+          await fetchInventory();
+          await fetchSummary();
+          setIsEditModalOpen(false);
+          setSelectedItem(null);
+        } else {
+          toast.error(response?.data?.message || "Failed to set inventory stock.");
+        }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Stock update error:", err);
       toast.error("Failed to update inventory.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // CSV Report Exporter
-  const handleExport = () => {
-    const headers = ["Product Name", "SKU", "Category", "Quantity", "Capacity", "Location", "Unit Price (INR)", "Total Value (INR)", "Status"];
-    const rows = inventory.map(item => {
-      const percentage = Math.round((item.quantity / item.maxCapacity) * 100);
-      const status = item.quantity === 0 ? "OUT OF STOCK" : percentage < 15 ? "LOW STOCK" : "IN STOCK";
-      const totalVal = item.quantity * item.unitPrice;
-      return [
-        item.name,
-        item.sku,
-        item.category,
-        item.quantity,
-        item.maxCapacity,
-        item.location,
-        item.unitPrice.toFixed(2),
-        totalVal.toFixed(2),
-        status
-      ];
-    });
-    
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Lumora_Inventory_${new Date().toISOString().slice(0,10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await exportStockApi();
+      if (response && response.status === 200) {
+        const blob = new Blob([response.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `Stock_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success("Stock report exported successfully.");
+      } else {
+        toast.error("Failed to export stock report.");
+      }
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.error("Failed to export stock report.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith(".xlsx")) {
+        toast.error("Please select a valid Excel file (.xlsx)");
+        return;
+      }
+      setImportFile(file);
+      setImportResult(null);
+    }
+  };
+
+  const handleStocktakeImport = async () => {
+    if (!importFile) {
+      toast.error("Please choose an Excel file to import.");
+      return;
+    }
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const response = await importStockApi(importFile, isDryRun);
+      const resData = response?.data || response?.response?.data;
+      if (response && (response.status === 200 || response.status === 201)) {
+        setImportResult({
+          ok: true,
+          dry_run: isDryRun,
+          changes: resData?.data?.changes || []
+        });
+        toast.success(resData?.message || (isDryRun ? "Dry run completed." : "Stocktake imported successfully."));
+        if (!isDryRun) {
+          resetStocktakeModal();
+          await fetchInventory();
+          await fetchSummary();
+        }
+      } else {
+        setImportResult({
+          ok: false,
+          errors: resData?.errors || resData?.message || "Import failed. Please check the file formatting."
+        });
+        toast.error(resData?.message || "Failed to process stocktake file.");
+      }
+    } catch (err) {
+      console.error("Stocktake import error:", err);
+      toast.error("An error occurred while uploading the stocktake file.");
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const resetStocktakeModal = () => {
+    setImportFile(null);
+    setIsDryRun(false);
+    setImportResult(null);
+    setIsImportModalOpen(false);
+    if (importFileInputRef.current) {
+      importFileInputRef.current.value = "";
+    }
   };
 
   // Stats computation
-  const totalStockValue = inventory.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-  const lowStockCount = inventory.filter(item => (item.quantity / item.maxCapacity) < 0.15 && item.quantity > 0).length;
-  const outOfStockCount = inventory.filter(item => item.quantity === 0).length;
-  const inStockPercentage = Math.round(((inventory.length - outOfStockCount) / inventory.length) * 100) || 94;
+  const totalStockValue = stockSummary?.stock_value_at_selling_price != null
+    ? parseFloat(stockSummary.stock_value_at_selling_price)
+    : inventory.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+  const lowStockCount = stockSummary?.low_stock != null
+    ? stockSummary.low_stock
+    : inventory.filter(item => (item.quantity / item.maxCapacity) < 0.15 && item.quantity > 0).length;
+  const outOfStockCount = stockSummary?.out_of_stock != null
+    ? stockSummary.out_of_stock
+    : inventory.filter(item => item.quantity === 0).length;
+  const inStockCount = stockSummary?.in_stock != null
+    ? stockSummary.in_stock
+    : inventory.filter(item => item.quantity > 0).length;
+  const inStockPercentage = stockSummary?.sku_count
+    ? Math.round(((stockSummary.in_stock || 0) / stockSummary.sku_count) * 100)
+    : (inventory.length ? Math.round(((inventory.length - outOfStockCount) / inventory.length) * 100) : 100);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-8 px-2 text-slate-800">
@@ -264,78 +403,99 @@ export default function InventoryManagement() {
             )}
           </div>
 
+          {/* Import Stocktake */}
+          <button
+            onClick={() => {
+              setImportFile(null);
+              setImportResult(null);
+              setIsImportModalOpen(true);
+            }}
+            className="flex items-center gap-2 text-sm font-bold text-[#2C3B5E] bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition-all shadow-xs cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Import Stocktake</span>
+          </button>
+
           {/* Export Report */}
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer"
+            disabled={isExporting}
+            className="flex items-center gap-2 text-sm font-bold text-white bg-[#2C3B5E] px-5 py-2.5 rounded-xl hover:bg-[#1E2A47] transition-all shadow-md shadow-[#2C3B5E]/10 cursor-pointer disabled:opacity-50"
           >
-            <Download className="w-4 h-4" />
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             <span>Export Report</span>
           </button>
         </div>
       </div>
 
-      {/* Summary Cards Grid with p-3 and mt-1 spacing */}
+      {/* Summary Cards Grid with live headline numbers from backend */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Total Stock Value */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-3 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-4 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
           <div className="flex items-center justify-between">
             <div className="text-slate-400 text-xs font-bold">Total Stock Value</div>
             <span className="text-[10px] font-extrabold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-0.5">
               <TrendingUp className="w-3 h-3" />
-              +4.2%
+              Live
             </span>
           </div>
           <div className="mt-1 space-y-1">
             <span className="text-3xl font-extrabold text-[#2C3B5E] tracking-tight block">
-              ₹{totalStockValue.toLocaleString()}
+              ₹{totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold block">
+              {stockSummary?.units_on_hand ?? inventory.reduce((sum, item) => sum + item.quantity, 0)} units on hand
             </span>
           </div>
         </div>
 
         {/* Card 2: Low Stock Alerts */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-3 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-4 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
           <div className="flex items-center justify-between">
             <div className="text-slate-400 text-xs font-bold">Low Stock Alerts</div>
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
           <div className="mt-1 space-y-1">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-rose-500 tracking-tight">
-                {lowStockCount > 0 ? lowStockCount : 12}
+              <span className="text-3xl font-extrabold text-amber-600 tracking-tight">
+                {lowStockCount}
               </span>
-              <span className="text-[10px] text-slate-400 font-bold">Items under 15%</span>
+              <span className="text-[10px] text-slate-400 font-bold">Items under threshold</span>
             </div>
           </div>
         </div>
 
         {/* Card 3: Out of Stock */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-3 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-4 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
           <div className="flex items-center justify-between">
             <div className="text-slate-400 text-xs font-bold">Out of Stock</div>
+            <MinusCircle className="w-4 h-4 text-rose-500" />
           </div>
           <div className="mt-1 space-y-1">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
-                {outOfStockCount > 0 ? outOfStockCount : 3}
+              <span className="text-3xl font-extrabold text-rose-600 tracking-tight">
+                {outOfStockCount}
               </span>
-              <span className="text-[10px] text-slate-400 font-bold">Critical restocking</span>
+              <span className="text-[10px] text-slate-400 font-bold">Require immediate restocking</span>
             </div>
           </div>
         </div>
 
-        {/* Card 4: Avg Turnover Rate */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-3 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
+        {/* Card 4: Tracked SKUs */}
+        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-white p-4 shadow-xs transition-all duration-300 hover:shadow-md hover:border-slate-200">
           <div className="flex items-center justify-between">
-            <div className="text-slate-400 text-xs font-bold">Avg. Turnover Rate</div>
-            <span className="text-[10px] font-extrabold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md flex items-center gap-0.5">
-              <TrendingUp className="w-3 h-3" />
-              +0.8%
-            </span>
+            <div className="text-slate-400 text-xs font-bold">Total Monitored SKUs</div>
+            <Box className="w-4 h-4 text-[#2C3B5E]" />
           </div>
           <div className="mt-1 space-y-1">
-            <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              5.2x
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                {stockSummary?.sku_count ?? inventory.length}
+              </span>
+              <span className="text-[10px] text-emerald-600 font-bold">
+                {inStockCount} active in stock
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -544,40 +704,96 @@ export default function InventoryManagement() {
             {/* Modal Form */}
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 text-left">
               <div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Product</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target Item</span>
                 <span className="text-sm font-extrabold text-[#2C3B5E] block mt-0.5">{selectedItem.name}</span>
-                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">SKU: {selectedItem.sku}</span>
+                <div className="flex items-center gap-3 text-[10px] text-slate-400 font-mono mt-0.5">
+                  <span>SKU: {selectedItem.sku}</span>
+                  <span>•</span>
+                  <span>Current: <strong className="text-slate-700">{selectedItem.quantity} units</strong></span>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Stock Quantity */}
+              {/* Mode Toggle: Set Count vs Relative Adjustment */}
+              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setAdjustMode("set")}
+                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    adjustMode === "set" ? "bg-white text-[#2C3B5E] shadow-xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Set Absolute Count
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdjustMode("adjust")}
+                  className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    adjustMode === "adjust" ? "bg-white text-[#2C3B5E] shadow-xs" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  Adjust (+/- Delta)
+                </button>
+              </div>
+
+              {adjustMode === "set" ? (
+                /* Set Stock Quantity */
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500">Current Stock (Units)</label>
+                  <label className="text-xs font-bold text-slate-600 block">New Exact Stock Quantity</label>
                   <input
                     type="number"
                     min="0"
-                    max={selectedItem.maxCapacity}
                     required
                     value={editFormData.quantity}
                     onChange={(e) => setEditFormData({ ...editFormData, quantity: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white font-semibold"
                   />
-                  <span className="text-[9px] text-slate-400 font-medium">Max capacity: {selectedItem.maxCapacity}</span>
+                  <span className="text-[10px] text-slate-400 block">Sets the final stock quantity in the database directly.</span>
                 </div>
+              ) : (
+                /* Relative Adjustment */
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">Quantity Change (+ to add, - to deduct)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. +10 or -3"
+                      value={adjustmentChange}
+                      onChange={(e) => setAdjustmentChange(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white font-semibold"
+                    />
+                    <span className="text-[10px] text-slate-400 block">
+                      New Total: <strong className="text-slate-700">{Math.max(0, selectedItem.quantity + (parseInt(adjustmentChange, 10) || 0))} units</strong>
+                    </span>
+                  </div>
 
-                {/* Unit Price */}
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500">Unit Price (INR)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    required
-                    value={editFormData.unitPrice}
-                    onChange={(e) => setEditFormData({ ...editFormData, unitPrice: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-sm outline-none transition-all focus:border-[#2C3B5E] focus:bg-white"
-                  />
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">Movement Reason</label>
+                    <select
+                      value={movementType}
+                      onChange={(e) => setMovementType(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs outline-none transition-all focus:border-[#2C3B5E] focus:bg-white font-medium"
+                    >
+                      <option value="adjustment">Manual Adjustment</option>
+                      <option value="damage">Damaged / Expired / Lost</option>
+                      <option value="return">Customer Return</option>
+                      <option value="purchase_receipt">Purchase Order Receipt</option>
+                      <option value="stocktake">Stocktake Correction</option>
+                    </select>
+                  </div>
                 </div>
+              )}
+
+              {/* Note / Audit Trail */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 block">Audit Note (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Reason for change..."
+                  value={adjustmentNote}
+                  onChange={(e) => setAdjustmentNote(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs outline-none transition-all focus:border-[#2C3B5E] focus:bg-white font-medium"
+                />
               </div>
 
               {/* Action Buttons */}
@@ -595,12 +811,188 @@ export default function InventoryManagement() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-5 py-2.5 text-xs font-bold text-white bg-[#2C3B5E] rounded-xl hover:bg-[#1E2A47] transition-colors cursor-pointer"
+                  className="px-5 py-2.5 text-xs font-bold text-white bg-[#2C3B5E] rounded-xl hover:bg-[#1E2A47] transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isLoading ? "Updating..." : "Save Adjustments"}
+                  {isLoading ? "Saving..." : "Save Adjustments"}
                 </button>
               </div>
             </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* Stocktake Bulk Import Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#EAF5FF] flex items-center justify-center text-[#2C3B5E]">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Import Stocktake</h2>
+                  <p className="text-xs text-slate-500 font-medium">Bulk update inventory quantities via an Excel spreadsheet (.xlsx)</p>
+                </div>
+              </div>
+              <button
+                onClick={resetStocktakeModal}
+                disabled={isImporting}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1 text-slate-700">
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-xs space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-[#2C3B5E]">
+                  <Info className="w-4 h-4 text-[#2C3B5E]" />
+                  <span>Stocktake Format</span>
+                </div>
+                <p className="text-slate-600 font-medium leading-relaxed">
+                  Export your current stock levels first using <strong>Export Report</strong>, modify the counted stock in the Excel file, and re-upload here.
+                </p>
+                <p className="text-[11px] text-slate-500 italic">
+                  * Matches rows by SKU. Items with identical counts are safely skipped.
+                </p>
+              </div>
+
+              {/* File Dropzone */}
+              <div className="space-y-1.5">
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".xlsx"
+                  className="hidden"
+                  onChange={handleImportFileChange}
+                />
+
+                {!importFile ? (
+                  <div
+                    onClick={() => importFileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-200 hover:border-[#2C3B5E] bg-slate-50/50 hover:bg-[#EAF5FF]/30 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-500">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-700">Click to select Stocktake Excel file (.xlsx)</p>
+                      <p className="text-xs text-slate-400 font-medium">Files up to 10MB supported</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                        <FileSpreadsheet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-800 truncate max-w-xs">{importFile.name}</p>
+                        <p className="text-xs text-slate-500 font-medium">{(importFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isImporting}
+                      onClick={() => {
+                        setImportFile(null);
+                        setImportResult(null);
+                        if (importFileInputRef.current) importFileInputRef.current.value = "";
+                      }}
+                      className="p-1.5 hover:bg-emerald-100 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Dry Run Checkbox */}
+              <div className="flex items-start gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                <input
+                  type="checkbox"
+                  id="stocktake-dryrun"
+                  checked={isDryRun}
+                  onChange={(e) => setIsDryRun(e.target.checked)}
+                  disabled={isImporting}
+                  className="mt-0.5 w-4 h-4 text-[#2C3B5E] rounded border-slate-300 focus:ring-[#2C3B5E] cursor-pointer"
+                />
+                <label htmlFor="stocktake-dryrun" className="text-xs text-slate-700 cursor-pointer select-none">
+                  <span className="font-bold text-slate-800 block">Dry run (Simulation mode)</span>
+                  <span className="text-slate-500 font-medium">Checks all SKUs and quantities without writing changes to the database.</span>
+                </label>
+              </div>
+
+              {/* Loading State */}
+              {isImporting && (
+                <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl flex items-center gap-3 text-blue-700">
+                  <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                  <div className="text-xs font-semibold">
+                    <p className="font-bold">Processing stocktake...</p>
+                    <p className="text-blue-600 font-normal">Validating rows and recalculating inventory counts.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Results Display */}
+              {importResult && (
+                <div className="space-y-2 pt-1">
+                  {importResult.ok ? (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <span>{importResult.dry_run ? "Dry Run Completed (No Changes Saved)" : "Stocktake Applied Successfully!"}</span>
+                      </div>
+                      <p className="text-xs text-emerald-700 font-medium">
+                        {importResult.changes ? `${importResult.changes.length} inventory item(s) updated.` : "All rows processed."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-2">
+                      <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
+                        <AlertTriangle className="w-5 h-5 text-rose-600" />
+                        <span>Stocktake Validation Failed</span>
+                      </div>
+                      {importResult.errors && (
+                        <div className="max-h-36 overflow-y-auto space-y-1 p-2 bg-white rounded-xl border border-rose-200 text-xs text-rose-700">
+                          {Array.isArray(importResult.errors) ? (
+                            importResult.errors.map((err, i) => <div key={i}>• {err}</div>)
+                          ) : (
+                            <div>{JSON.stringify(importResult.errors)}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={resetStocktakeModal}
+                disabled={isImporting}
+                className="px-5 py-2.5 text-xs font-bold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleStocktakeImport}
+                disabled={!importFile || isImporting}
+                className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-[#2C3B5E] hover:bg-[#1E2A47] rounded-xl transition-all cursor-pointer shadow-md shadow-[#2C3B5E]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                <span>{isDryRun ? "Run Validation" : "Apply Stocktake"}</span>
+              </button>
+            </div>
 
           </div>
         </div>

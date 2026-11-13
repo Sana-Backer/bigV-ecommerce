@@ -119,6 +119,41 @@ export default function ProductDetailPage({ params: paramsPromise }) {
     }
   };
 
+  const handleAddToCartFeatured = async (prod, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (!prod) return;
+    try {
+      const payload = {
+        product_id: prod.id,
+        quantity: 1,
+      };
+      if (prod.default_variant_id || prod.variant_id) {
+        payload.variant_id = prod.default_variant_id || prod.variant_id;
+      }
+      const res = await addToCartApi(payload);
+      if (res?.response || res?.isAxiosError || (res?.status && res.status >= 400)) {
+        const errorData = res?.response?.data || res?.data;
+        const errMsg = errorData?.errors?.detail || errorData?.message || errorData?.detail || "Failed to add to cart";
+        toast.error(errMsg);
+        return;
+      }
+      if (res.status === 201 || res.status === 200) {
+        setCartNotification(`Added 1 x ${prod.name} to your bag!`);
+        setTimeout(() => setCartNotification(""), 3500);
+        window.dispatchEvent(new Event("cartUpdated"));
+        window.dispatchEvent(new Event("openCart"));
+      } else {
+        toast.error("Failed to add to cart");
+      }
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      toast.error("Something went wrong while adding to cart");
+    }
+  };
+
   const handleAddToWishlist = async () => {
     if (!product) return;
     try {
@@ -414,7 +449,7 @@ export default function ProductDetailPage({ params: paramsPromise }) {
 
       <section className="relative z-0 w-full pt-32 lg:pt-30 pb-0 flex items-start overflow-hidden">
         {/* Asymmetric Pink Background - Stops early on Desktop */}
-        <div className={`absolute top-0 left-0 w-full h-full lg:h-[calc(100%-8rem)] -z-10 ${selectedShade?.bg || "bg-[#F0D4D0]"} transition-colors duration-700`} />
+        <div className={`absolute top-0 left-0 w-full h-full lg:h-[calc(100%-3rem)] -z-10 ${selectedShade?.bg || "bg-[#F0D4D0]"} transition-colors duration-700`} />
 
         <div className="w-full max-w-[1400px] mx-auto pl-6 pr-6 lg:pl-10 lg:pr-0 relative z-10 flex flex-col lg:flex-row items-start lg:items-stretch justify-between gap-12">
 
@@ -1016,7 +1051,11 @@ export default function ProductDetailPage({ params: paramsPromise }) {
                     <span className={`text-[11px] font-medium tracking-wide bg-white text-[#2d3150] px-4 py-1.5 rounded-full uppercase ${prod.is_featured ? '' : 'invisible'}`}>
                       FEATURED
                     </span>
-                    <button className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#2d3150] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:scale-110 transition-transform">
+                    <button 
+                      onClick={(e) => handleAddToCartFeatured(prod, e)}
+                      aria-label="Add to bag"
+                      className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#2d3150] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:scale-110 active:scale-95 transition-all"
+                    >
                       <ShoppingBag size={14} strokeWidth={2} />
                     </button>
                   </div>
