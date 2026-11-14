@@ -3,13 +3,17 @@ const nextConfig = {
   allowedDevOrigins: ["192.168.1.17"],
   skipTrailingSlashRedirect: true,
   async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://159.65.146.87/api/:path*",
-      },
-    ];
-  },
+  return [
+    {
+      source: "/api/:path*",
+      destination: "https://159.65.146.87/api/:path*",
+    },
+    {
+      source: "/media/:path*",
+      destination: "https://159.65.146.87/media/:path*",
+    },
+  ];
+},
   images: {
     unoptimized: true,
     remotePatterns: [
