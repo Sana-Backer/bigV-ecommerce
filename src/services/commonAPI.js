@@ -15,7 +15,11 @@ export const commonAPI = async (
   let refreshKey = "customerRefreshToken";
 
   if (typeof window !== "undefined") {
-    if (localStorage.getItem("adminToken")) {
+    const isAdminRoute =
+      window.location.pathname.startsWith("/admin") ||
+      url.includes("/admin/");
+
+    if (isAdminRoute) {
       token = localStorage.getItem("adminToken");
       refreshToken = localStorage.getItem("adminRefreshToken");
       tokenKey = "adminToken";
@@ -23,6 +27,14 @@ export const commonAPI = async (
     } else {
       token = localStorage.getItem("customerToken");
       refreshToken = localStorage.getItem("customerRefreshToken");
+    }
+
+    // Guard against literal "null", "undefined", or blank strings
+    if (!token || token === "null" || token === "undefined") {
+      token = null;
+    }
+    if (!refreshToken || refreshToken === "null" || refreshToken === "undefined") {
+      refreshToken = null;
     }
   }
 

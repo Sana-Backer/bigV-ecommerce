@@ -83,7 +83,7 @@ const Footer = () => {
       {/* Footer Links Container */}
       <div
         ref={linksRef}
-        className="relative z-10 bg-[#F2F2F2] pt-12 pb-12 md:pb-16 lg:pb-20 text-neutral-800 shadow-[0_-15px_35px_rgba(0,0,0,0.12)] -mt-12 lg:-mt-16 will-change-transform"
+        className="relative z-10 bg-[#F2F2F2] pt-12 pb-20 md:pb-16 lg:pb-20 text-neutral-800 shadow-[0_-15px_35px_rgba(0,0,0,0.12)] -mt-12 lg:-mt-16 will-change-transform"
       >
         <div className="max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16">
           
@@ -135,6 +135,7 @@ const Footer = () => {
                 <ul className="flex flex-col gap-4 text-sm text-[#393F59] font-medium">
                   <li><Link href="/products" className="hover:text-black transition-colors duration-200">Shop</Link></li>
                   <li><Link href="/about-us" className="hover:text-black transition-colors duration-200">About</Link></li>
+                  <li><Link href="/contact" className="hover:text-black transition-colors duration-200">Contact</Link></li>
                   <li><Link href="/login" className="hover:text-black transition-colors duration-200">Sign Up/Login</Link></li>
                 </ul>
               </div>
@@ -182,24 +183,24 @@ const Footer = () => {
           </div>
 
           {/* LARGE LOGO */}
-          <div className="w-full mt-1 md:mt-4 lg:mt-2">
-            <h2 className="text-neutral-800 border-t border-neutral-300/40 text-[2rem] sm:text-[2rem] lg:text-[9vw] xl:text-[7rem] text-center pt-8 sm:pt-12 font-bold tracking-[0.1em] uppercase leading-none w-full flex justify-center">
+          <div className="w-full mt-4 md:mt-4 lg:mt-2">
+            <h2 className="text-neutral-800 border-t border-neutral-300/40 text-[2rem] sm:text-[2rem] lg:text-[9vw] xl:text-[7rem] text-center pt-4 md:pt-8 sm:pt-12 font-bold tracking-[0.1em] uppercase leading-none w-full flex justify-center">
               BIG S VENTURE
             </h2> 
           </div>
 
           {/* Brand & Copyright Footer Bar */}
-          <div className="mt-12 md:mt-16 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 text-xs text-neutral-500 text-center md:text-left">
-            <div className="flex flex-col gap-2 items-center md:items-start">
+          <div className="mt-4 md:mt-12 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-8 text-xs text-neutral-500 text-center md:text-left">
+            <div className="flex flex-col gap-1 items-center md:items-start">
               <p className="text-neutral-500 text-[11px] max-w-sm">
                 Clean, Conscious, Clinical Skincare! Honest products that truly work.
               </p>
-              <p className="text-neutral-400 mt-2 text-[10px]">
+              <p className="text-neutral-400 mt-1 text-[10px]">
                 &copy; {new Date().getFullYear()} BIGSVENTURE. All Rights Reserved.
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center items-center gap-6 text-[10px] tracking-[0.1em] uppercase">
+            <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-[10px] tracking-[0.1em] uppercase">
               <a href="#" className="hover:text-black transition-colors duration-200">Disclaimer</a>
               <a href="#" className="hover:text-black transition-colors duration-200">Credits</a>
               <p className="text-neutral-400">Website By: Sana-Backer</p>

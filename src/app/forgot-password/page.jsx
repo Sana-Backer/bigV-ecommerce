@@ -42,12 +42,12 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F5F4F0] overflow-hidden">
+    <div className="min-h-screen bg-[#FCFAF7] lg:bg-[#F5F4F0] flex flex-col lg:flex-row font-sans">
       {/* Left Column - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative bg-[#1F2421]">
+      <div className="hidden lg:block lg:w-1/2 relative bg-[#1F2421] min-h-screen sticky top-0 h-screen">
         <img
           src="https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=1887&auto=format&fit=crop"
-          alt="Lumora Skincare"
+          alt="BigS Ventures Skincare"
           className="absolute inset-0 w-full h-full object-cover opacity-85 blend-luminosity"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#1F2421]/90 via-[#2C332E]/40 to-transparent" />
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
         <div className="absolute bottom-16 left-16 right-16 text-white z-10">
           <Link href="/">
             <span className="text-sm font-semibold tracking-[0.4em] text-[#E0D8C3] uppercase mb-4 block">
-              Lumora Skincare
+              BigS Ventures
             </span>
           </Link>
           <h2 className="text-4xl xl:text-5xl font-normal leading-tight font-serif text-[#FBF9F6] mb-6">
@@ -65,8 +65,8 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Right Column - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-between px-6 py-8 sm:px-16 lg:px-24 bg-[#FCFAF7] overflow-y-auto">
-        <div className="flex items-center justify-between">
+      <div className="w-full lg:w-1/2 flex flex-col justify-between min-h-screen px-6 py-6 sm:px-12 lg:px-20 bg-[#FCFAF7]">
+        <div className="flex items-center justify-between w-full max-w-md mx-auto pt-2 pb-4 shrink-0">
           <Link
             href="/login"
             className="group flex items-center gap-2 text-xs font-semibold text-[#5A635B] hover:text-black transition-colors"
@@ -75,12 +75,16 @@ export default function ForgotPasswordPage() {
             Back to Login
           </Link>
           
-          <h1 className="text-xl font-normal tracking-[0.2em] text-[#2C332E] font-serif">
-            LUMORA
-          </h1>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="BigS Ventures"
+              className="h-9 md:h-11 w-auto object-contain"
+            />
+          </Link>
         </div>
 
-        <div className="my-auto py-12 max-w-md w-full mx-auto">
+        <div className="w-full max-w-md mx-auto py-6 flex-1 flex flex-col justify-center">
           <div className="mb-10">
             <h2 className="text-3xl font-normal text-[#2C332E] font-serif mb-3">
               Reset Password
@@ -140,6 +144,13 @@ export default function ForgotPasswordPage() {
               {isLoading ? "Sending..." : "Send Reset Link"}
             </button>
           </form>
+        </div>
+
+        {/* Footer Copy */}
+        <div className="pt-4 pb-2 shrink-0 text-center">
+          <p className="text-[10px] text-[#A8B2A9] font-medium tracking-wide">
+            &copy; {new Date().getFullYear()} BigS Ventures. All rights reserved. &bull; Secure Connection.
+          </p>
         </div>
       </div>
     </div>

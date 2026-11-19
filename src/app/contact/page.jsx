@@ -68,10 +68,10 @@ export default function ContactPage() {
 
   return (
     <>
-      <main className="relative min-h-screen w-full flex flex-col">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0 h-[120vh]">
-          <div className="absolute inset-0 bg-black/40 z-10" />
+      <main className="relative min-h-screen w-full flex flex-col overflow-hidden">
+        {/* Background Image with Overlay - covers entire main content seamlessly */}
+        <div className="absolute inset-0 z-0 w-full h-full">
+          <div className="absolute inset-0 bg-black/50 z-10" />
           <Image
             src="/contact-bg.png"
             alt="Contact Background"
@@ -87,50 +87,50 @@ export default function ContactPage() {
         </div>
 
         {/* Main Content Layer */}
-        <div className="relative z-20 flex-1 flex items-center pt-24 pb-20">
-          <div className="container mx-auto px-6 lg:px-12 w-full max-w-7xl">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+        <div className="relative z-20 flex-1 flex items-center pt-24 sm:pt-28 md:pt-36 pb-16 md:pb-24">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-12 w-full max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-24 items-center">
               
               {/* Left Column: Text & Info */}
-              <div className="text-white space-y-10">
-                <div className="space-y-4">
-                  <h3 className="text-lg md:text-xl font-bold tracking-wider uppercase text-white/90">
+              <div className="text-white space-y-6 md:space-y-10">
+                <div className="space-y-3 md:space-y-4">
+                  <h3 className="text-sm md:text-xl font-bold tracking-wider uppercase text-white/90">
                     Contact Us
                   </h3>
-                  <h1 className="text-5xl md:text-7xl font-light tracking-tight flex flex-wrap items-baseline gap-4">
+                  <h1 className="text-4xl sm:text-5xl md:text-7xl font-light tracking-tight flex flex-wrap items-baseline gap-2 sm:gap-4">
                     <span>Get in</span>
                     <span 
                       style={{ fontFamily: "var(--font-yellowtail)" }}
-                      className="text-6xl md:text-8xl lowercase -translate-y-2 inline-block"
+                      className="text-5xl sm:text-6xl md:text-8xl lowercase -translate-y-1 md:-translate-y-2 inline-block text-amber-200/90"
                     >
                       touch
                     </span>
                   </h1>
-                  <p className="text-xs md:text-sm max-w-md uppercase tracking-wider leading-relaxed text-white/80 mt-6">
+                  <p className="text-xs md:text-sm max-w-md uppercase tracking-wider leading-relaxed text-white/80 mt-4 md:mt-6">
                     Receive expert guidance to maximize your next purchase, sale, or investment.
                   </p>
                 </div>
 
-                <div className="space-y-6 pt-12">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
-                      <MapPin className="w-6 h-6 text-slate-800" />
+                <div className="space-y-4 md:space-y-6 pt-4 md:pt-8">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
+                      <MapPin className="w-5 h-5 md:w-6 md:h-6 text-slate-800" />
                     </div>
-                    <span className="font-bold text-sm md:text-base">123 New South, New York</span>
+                    <span className="font-bold text-xs sm:text-sm md:text-base">123 New South, New York</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
-                      <Mail className="w-6 h-6 text-slate-800" />
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-lg flex items-center justify-center shrink-0">
+                      <Mail className="w-5 h-5 md:w-6 md:h-6 text-slate-800" />
                     </div>
-                    <span className="font-bold text-sm md:text-base">Contact@Asdf.Com</span>
+                    <span className="font-bold text-xs sm:text-sm md:text-base">Contact@Asdf.Com</span>
                   </div>
                 </div>
               </div>
 
               {/* Right Column: Contact Form */}
-              <div className="w-full max-w-md ml-auto">
-                <div className="bg-white rounded-xl p-8 shadow-2xl">
-                  <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="w-full max-w-md mx-auto lg:ml-auto">
+                <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl">
+                  <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
                     
                     {/* Honeypot field - hidden from users, catches bots */}
                     <div className="hidden" aria-hidden="true">
@@ -209,8 +209,8 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-      <div className="relative z-20 bg-white pt-24">
-         <Footer />
+      <div className="relative z-20 bg-white">
+        <Footer />
       </div>
     </>
   );

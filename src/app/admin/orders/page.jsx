@@ -373,12 +373,16 @@ export default function OrderManagement() {
 
   // Stats computation
   const totalRevenue = orders
-    .filter(o => o.payment === "PAID")
+    .filter(o => o.payment?.toUpperCase() === "PAID")
     .reduce((sum, o) => sum + o.total, 0);
 
+  const todayStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const todaySales = orders
-    .filter(o => o.date === "Oct 24, 2023" && o.payment === "PAID")
+    .filter(o => o.date === todayStr && o.payment?.toUpperCase() === "PAID")
     .reduce((sum, o) => sum + o.total, 0);
+
+  const totalProducts = orders.reduce((sum, o) => sum + (o.rawProductCount || o.products.length || 0), 0);
+  const totalOrders = orders.length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-8 px-2 text-slate-800">
@@ -390,7 +394,7 @@ export default function OrderManagement() {
             Order Management
           </h1>
           <p className="text-sm font-medium text-slate-400 mt-1">
-            Oversee and fulfill luxury orders across all Lumora Beauty channels.
+            Oversee and fulfill orders across all Big S Ventures channels.
           </p>
         </div>
 
@@ -468,7 +472,7 @@ export default function OrderManagement() {
               <span className="text-xl font-extrabold text-pink-500">₹</span>
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-pink-50 text-pink-600">
-              +12.5%
+              +0%
             </span>
           </div>
           <div className="mt-1 space-y-1">
@@ -488,7 +492,7 @@ export default function OrderManagement() {
               <TrendingUp className="w-6 h-6 text-amber-600" />
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-600">
-              +4.2%
+              +0%
             </span>
           </div>
           <div className="mt-1 space-y-1">
@@ -496,7 +500,7 @@ export default function OrderManagement() {
               TODAY&apos;S SALES
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              ₹{todaySales > 0 ? todaySales.toLocaleString() : "8,400"}
+              ₹{todaySales.toLocaleString()}
             </span>
           </div>
         </div>
@@ -508,7 +512,7 @@ export default function OrderManagement() {
               <ShoppingBag className="w-5 h-5 text-emerald-600" />
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-600">
-              +4%
+              +0%
             </span>
           </div>
           <div className="mt-1 space-y-1">
@@ -516,7 +520,7 @@ export default function OrderManagement() {
               TOTAL PRODUCTS
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              120
+              {totalProducts.toLocaleString()}
             </span>
           </div>
         </div>
@@ -528,7 +532,7 @@ export default function OrderManagement() {
               <ShoppingBag className="w-5 h-5 text-[#8A8A68]" />
             </div>
             <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EAE6D8]/50 text-[#8A8A68]">
-              -0%
+              +0%
             </span>
           </div>
           <div className="mt-1 space-y-1">
@@ -536,7 +540,7 @@ export default function OrderManagement() {
               TOTAL ORDERS
             </span>
             <span className="text-3xl font-extrabold text-slate-800 tracking-tight block">
-              1,284
+              {totalOrders.toLocaleString()}
             </span>
           </div>
         </div>

@@ -177,6 +177,8 @@ export default function ProductCard({
           <img
             src={image}
             alt={name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-contain mix-blend-multiply transition-transform duration-700 ease-out group-hover:scale-[1.05]"
           />
         ) : null}

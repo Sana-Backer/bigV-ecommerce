@@ -41,7 +41,7 @@ export default function Sidebar({ className = "", onClose }) {
     { name: "Staff", href: "/admin/staff", icon: Users },
     { name: "Coupons", href: "/admin/coupons", icon: Ticket },
     { name: "Banners", href: "/admin/banners", icon: ImageIcon },
-    { name: "Reviews", href: "/admin/reviews", icon: MessageSquare },
+    // { name: "Reviews", href: "/admin/reviews", icon: MessageSquare },
     { name: "Settings", href: "/admin/account-settings", icon: Settings },
   ];
 
@@ -79,16 +79,16 @@ export default function Sidebar({ className = "", onClose }) {
       {/* Brand Header */}
       <div className="p-6 pb-1 flex items-center gap-3">
         {/* Logo Container */}
-        <div className="w-10 h-10 rounded-xl bg-[#2C3B5E] flex items-center justify-center shadow-md shadow-[#2C3B5E]/10">
-          <Sparkles className="w-5.5 h-5.5 text-white stroke-[1.8]" />
+        <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-md shadow-[#2C3B5E]/10 border border-[#E2E8F0]">
+          <img src="/logo.png" alt="Big S Ventures" className="w-full h-full object-contain" />
         </div>
         {/* Brand Text */}
         <div className="flex flex-col">
-          <span className="text-lg font-bold text-[#2C3B5E] leading-tight font-actor tracking-wide">
-            Lumora
+          <span className="text-base font-bold text-[#2C3B5E] leading-tight font-actor tracking-wide">
+            Big S Ventures
           </span>
-          <span className="text-[11px] font-medium text-[#7E8B9B] tracking-wider uppercase">
-            Luxury Skincare
+          <span className="text-[10px] font-medium text-[#7E8B9B] tracking-wider uppercase">
+            Admin Portal
           </span>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function Sidebar({ className = "", onClose }) {
             </div>
             <div className="flex flex-col overflow-hidden">
               <span className="text-xs font-semibold text-[#2C3B5E] truncate">Admin User</span>
-              <span className="text-[10px] text-[#7E8B9B] truncate">admin@lumora.com</span>
+              <span className="text-[10px] text-[#7E8B9B] truncate">admin@bigsventures.com</span>
             </div>
           </div>
           <button 

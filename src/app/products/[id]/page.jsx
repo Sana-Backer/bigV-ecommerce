@@ -1002,32 +1002,32 @@ export default function ProductDetailPage({ params: paramsPromise }) {
       {/* SECTION 4: "featured" CAROUSEL */}
       {/* ========================================================================= */}
       <section ref={featuredSectionRef} className="py-16 bg-white overflow-hidden">
-        <div className="max-w-[1400px] mx-auto px-6 sm:px-12 lg:px-20">
+        <div className="max-w-[1600px] mx-auto px-6 sm:px-12 lg:px-20">
 
           {/* Header & Controls */}
-          <div className="relative flex items-center justify-end mb-10 w-full">
+          <div className="flex items-center justify-between md:justify-end relative mb-8 md:mb-10 w-full">
 
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
-              <h2 className="font-yellowtail text-[#2d3150] text-[44px] leading-none select-none">
+            <div className="md:absolute md:left-1/2 md:-translate-x-1/2 flex items-center justify-start md:justify-center">
+              <h2 className="font-yellowtail text-[#2d3150] text-3xl sm:text-4xl md:text-[44px] leading-none select-none">
                 featured
               </h2>
             </div>
 
             {/* Slider control buttons */}
-            <div className="flex items-center gap-3 relative z-10">
+            <div className="flex items-center gap-2 sm:gap-3 relative z-10 shrink-0">
               <button
                 onClick={() => scrollCarousel("left")}
-                className="w-[42px] h-[42px] rounded-full bg-[#E5CDC9] hover:bg-[#dcbcb7] text-[#2d3150] flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="w-9 h-9 sm:w-[42px] sm:h-[42px] rounded-full bg-[#E5CDC9] hover:bg-[#dcbcb7] text-[#2d3150] flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 aria-label="Previous slide"
               >
-                <ChevronLeft size={20} strokeWidth={2.5} />
+                <ChevronLeft size={18} className="sm:w-5 sm:h-5" strokeWidth={2.5} />
               </button>
               <button
                 onClick={() => scrollCarousel("right")}
-                className="w-[42px] h-[42px] rounded-full bg-[#E5CDC9] hover:bg-[#dcbcb7] text-[#2d3150] flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="w-9 h-9 sm:w-[42px] sm:h-[42px] rounded-full bg-[#E5CDC9] hover:bg-[#dcbcb7] text-[#2d3150] flex items-center justify-center transition-all hover:scale-105 active:scale-95 cursor-pointer"
                 aria-label="Next slide"
               >
-                <ChevronRight size={20} strokeWidth={2.5} />
+                <ChevronRight size={18} className="sm:w-5 sm:h-5" strokeWidth={2.5} />
               </button>
             </div>
 

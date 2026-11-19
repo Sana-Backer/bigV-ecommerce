@@ -137,12 +137,12 @@ function RegisterContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F4F0] flex overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#FCFAF7] lg:bg-[#F5F4F0] flex flex-col lg:flex-row font-sans">
       {/* Left Column - Elegant Luxury Banner Image */}
-      <div className="hidden lg:block lg:w-1/2 relative bg-[#2C332E]">
+      <div className="hidden lg:block lg:w-1/2 relative bg-[#2C332E] min-h-screen sticky top-0 h-screen">
         <img
           src="/skincare-hero.png"
-          alt="Lumora Skincare"
+          alt="BigS Ventures Skincare"
           className="absolute inset-0 w-full h-full object-cover opacity-85 blend-luminosity"
         />
         {/* Subtle Dark Gold Gradient Overlay */}
@@ -164,9 +164,9 @@ function RegisterContent() {
       </div>
 
       {/* Right Column - Sleek Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-between px-6 py-8 sm:px-16 lg:px-24 bg-[#FCFAF7] overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex flex-col justify-between min-h-screen px-6 py-6 sm:px-12 lg:px-20 bg-[#FCFAF7]">
         {/* Top Header Row */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between w-full max-w-md mx-auto pt-2 pb-4 shrink-0">
           <Link
             href="/"
             className="group flex items-center gap-2 text-xs font-semibold text-[#5A635B] hover:text-black transition-colors"
@@ -179,13 +179,13 @@ function RegisterContent() {
             <img
               src="/logo.png"
               alt="BigS Ventures"
-              className="h-10 md:h-12 w-auto object-contain"
+              className="h-9 md:h-11 w-auto object-contain"
             />
           </Link>
         </div>
 
         {/* Form Container */}
-        <div className="my-auto py-10 max-w-md w-full mx-auto">
+        <div className="w-full max-w-md mx-auto py-6 flex-1 flex flex-col justify-center">
           <div className="mb-8">
             <h2 className="text-3xl font-normal text-[#2C332E] font-serif mb-2">
               Create an Account
@@ -386,7 +386,7 @@ function RegisterContent() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </div>
-                  Subscribe to the Lumora newsletter for skincare rituals & product news
+                  Subscribe to the BigS Ventures newsletter for exclusive offers & product updates
                 </label>
               </div>
 
@@ -394,7 +394,7 @@ function RegisterContent() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 text-xs font-bold text-white bg-[#2C332E] rounded-lg hover:bg-[#3E4741] transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest shadow-md pt-4"
+                className="w-full py-3.5 text-xs font-bold text-white bg-[#2C332E] rounded-lg hover:bg-[#3E4741] transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-70 disabled:pointer-events-none uppercase tracking-widest shadow-md"
               >
                 {isLoading ? (
                   <>
@@ -425,9 +425,11 @@ function RegisterContent() {
         </div>
 
         {/* Footer Copy */}
-        <p className="text-center text-[10px] text-[#A8B2A9] font-medium tracking-wide">
-          &copy; {new Date().getFullYear()} Lumora. All rights reserved. &bull; Secure Connection.
-        </p>
+        <div className="pt-4 pb-2 shrink-0 text-center">
+          <p className="text-[10px] text-[#A8B2A9] font-medium tracking-wide">
+            &copy; {new Date().getFullYear()} BigS Ventures. All rights reserved. &bull; Secure Connection.
+          </p>
+        </div>
       </div>
     </div>
   );

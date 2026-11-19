@@ -41,7 +41,7 @@ export default function AdminLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-[#F5FAFFCC]">
       {/* Sidebar for desktop */}
-      <div className="hidden md:block">
+      <div className="hidden md:block relative z-30">
         <Sidebar className="sticky top-0 h-screen" />
       </div>
 

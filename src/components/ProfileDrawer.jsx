@@ -452,6 +452,15 @@ export default function ProfileDrawer({ isOpen, onClose }) {
                       </button>
                     </div>
                   </form>
+
+                  <div className="pt-6 text-center">
+                    <p className="text-xs text-[#7B827C]">
+                      Need assistance or have questions?{" "}
+                      <Link href="/contact" onClick={onClose} className="font-semibold text-[#353B50] hover:underline">
+                        Contact Support
+                      </Link>
+                    </p>
+                  </div>
                 </>
               )}
             </div>

@@ -45,7 +45,8 @@ export default function ProductGrid({
   const scrollLeft = (category) => {};
   const scrollRight = (category) => {};
 
-  if (isLoading) {
+  // 1. Initial page load: show skeleton placeholders only when there are no products yet
+  if (isLoading && products.length === 0) {
     return (
       <div className="w-full flex flex-col gap-12 pb-1">
         <div className="w-full">
@@ -59,8 +60,8 @@ export default function ProductGrid({
               <div className="w-8 h-8 rounded-full bg-black/5 animate-pulse" />
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {Array.from({ length: 3 }).map((_, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 w-full">
+            {Array.from({ length: 4 }).map((_, index) => (
               <ProductCard key={`skeleton-${index}`} isLoading={true} />
             ))}
           </div>
@@ -69,7 +70,8 @@ export default function ProductGrid({
     );
   }
 
-  if (products.length === 0) {
+  // 2. No products found state
+  if (!isLoading && products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-gray-300 text-gray-500">
         <p className="text-lg font-medium">No products found.</p>
@@ -107,7 +109,16 @@ export default function ProductGrid({
   );
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-6">
+    <div className={`w-full flex flex-col gap-6 pb-6 relative transition-opacity duration-300 ${
+      isLoading ? "opacity-50 pointer-events-none" : "opacity-100"
+    }`}>
+      {/* Sleek top loading indicator line during filtering */}
+      {isLoading && (
+        <div className="absolute top-0 left-0 right-0 h-1 bg-slate-200/50 rounded-full overflow-hidden z-20">
+          <div className="h-full bg-[#2C3B5E] w-1/3 rounded-full animate-pulse" />
+        </div>
+      )}
+
       {sortedCategories.map((category) => (
         <div key={category} className="w-full flex flex-col gap-[26px]">
           {/* Section Header */}

@@ -88,14 +88,14 @@ export default function AdminLogin() {
             <div className="w-full max-w-md space-y-8 z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {/* Brand Header */}
                 <div className="flex flex-col items-center text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#2C3B5E] to-[#4A5D8A] shadow-lg shadow-[#2C3B5E]/30 mb-4 ring-1 ring-white/10">
-                        <Sparkles className="h-6.5 w-6.5 text-[#E9F5FF] stroke-[1.8]" />
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md shadow-lg shadow-[#2C3B5E]/30 mb-4 ring-1 ring-white/15 p-2">
+                        <img src="/logo.png" alt="Big S Ventures" className="w-full h-full object-contain" />
                     </div>
                     <h2 className="text-3xl font-extrabold tracking-tight text-white font-actor">
-                        Lumora Portal
+                        Big S Ventures
                     </h2>
                     <p className="mt-2 text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                        Luxury Skincare Admin
+                        Admin Portal
                     </p>
                 </div>
 
@@ -121,7 +121,7 @@ export default function AdminLogin() {
                                 <input
                                     type="email"
                                     required
-                                    placeholder="admin@lumora.com"
+                                    placeholder="admin@bigsventures.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full rounded-xl border border-slate-800 bg-slate-950/40 py-3 pl-10 pr-4 text-sm text-white outline-none transition-all placeholder:text-slate-600 focus:border-[#4A5D8A] focus:bg-slate-950/80 focus:ring-1 focus:ring-[#4A5D8A] font-medium"
@@ -202,7 +202,7 @@ export default function AdminLogin() {
 
                 {/* Footer info helper */}
                 <p className="text-center text-xs text-slate-500">
-                    Lumora Skincare Portal &bull; Protected Connection
+                    Big S Ventures Portal &bull; Protected Connection
                 </p>
             </div>
         </div>

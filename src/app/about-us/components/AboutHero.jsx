@@ -166,7 +166,7 @@ export default function AboutHero() {
     <>
       <section
         ref={containerRef}
-        className="relative pt-10 md:pt-16 xl:pt-20 overflow-hidden pb-16 md:pb-24 xl:pb-40 m-auto"
+        className="relative pt-9 sm:pt-8 md:pt-26 lg:pt-25 xl:pt-30 overflow-hidden pb-16 md:pb-24 xl:pb-40 m-auto"
       >
         {/* Decorative organic background blobs */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -178,7 +178,7 @@ export default function AboutHero() {
 
           {/* Header Section */}
           <div className="mb-8 md:mb-14 xl:mb-20">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem] mb-3 tracking-tight text-[#393F59]">
+            <h1 className="text-4xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-[5rem] mb-3 tracking-tight text-[#393F59]">
               About Us
             </h1>
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">

@@ -246,12 +246,12 @@ const BrandHighlights = () => {
   return (
     <section className="py-14 sm:py-20 lg:py-25 overflow-hidden">
 
-      <div className="mx-auto">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-10">
         <div className="pb-12 sm:pb-16">
           {/* TITLE */}
           <div
             ref={titleRef}
-            className="mb-8 sm:mb-10 px-5 sm:px-6 lg:px-10 overflow-hidden"
+            className="mb-8 sm:mb-10 overflow-hidden"
           >
 
             <div className="overflow-hidden">
@@ -277,11 +277,11 @@ const BrandHighlights = () => {
           <div className="relative">
 
             {/* STATIC LINE */}
-            <div className="absolute top-[5px] left-0 right-0 h-[1px] bg-[#d8d3cf]" />
+            <div className="absolute top-[5px] -left-6 -right-6 sm:-left-8 sm:-right-8 lg:-left-10 lg:-right-10 h-[1px] bg-[#d8d3cf]" />
 
             <div
               ref={featuresRef}
-              className="flex overflow-x-auto no-scrollbar gap-5 sm:gap-8 lg:gap-14 relative cursor-grab active:cursor-grabbing select-none pb-4 px-5 sm:px-6 lg:px-10 snap-x snap-mandatory scroll-smooth"
+              className="flex overflow-x-auto no-scrollbar gap-5 sm:gap-8 lg:gap-14 relative cursor-grab active:cursor-grabbing select-none pb-4 scroll-pl-6 sm:scroll-pl-8 lg:scroll-pl-10 -mx-6 sm:-mx-8 lg:-mx-10 px-6 sm:px-8 lg:px-10 snap-x snap-mandatory scroll-smooth"
             >
 
               {features.map((item, index) => (
@@ -313,7 +313,7 @@ const BrandHighlights = () => {
             </div>
 
             {/* PROGRESS & SWIPE BAR */}
-            <div className="flex items-center justify-between px-5 sm:px-6 lg:px-10 mt-3 sm:mt-4">
+            <div className="flex items-center justify-between mt-4 sm:mt-6">
               <div className="flex items-center gap-1.5">
                 {features.map((_, i) => (
                   <button
@@ -345,10 +345,10 @@ const BrandHighlights = () => {
         </div>
 
         {/* BOTTOM */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 pt-10 sm:pt-16 lg:pt-14 pb-2 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 pt-16 sm:pt-20 lg:pt-24 pb-2 items-start">
 
           {/* LEFT */}
-          <div className="px-5 sm:px-6 lg:px-0 lg:pl-10">
+          <div className="lg:pl-6">
 
             <h2 className="text-[#2d3150] text-3xl sm:text-4xl lg:text-5xl leading-[1.1] font-dm-serif my-4 sm:my-6">
               Crafted For Confidence, <br />
