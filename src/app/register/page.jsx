@@ -25,12 +25,11 @@ function RegisterContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const redirectPath = searchParams.get("redirect") || "/";
-
-
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -39,11 +38,19 @@ function RegisterContent() {
       ...prev,
       [name]: type === "checkbox" ? checked : finalValue
     }));
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
 
     // Basic Validation
     if (!formData.first_name || !formData.email || !formData.password || !formData.confirm_password) {
@@ -73,11 +80,13 @@ function RegisterContent() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const response = await userRegisterApi({
         email: formData.email.trim(),
         first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
+        last_name: formData.last_name ? formData.last_name.trim() : "",
         phone: phoneValidation.formatted || formData.phone.trim(),
         password: formData.password,
         confirm_password: formData.confirm_password,
@@ -105,33 +114,29 @@ function RegisterContent() {
           setError("Account created, but automatic sign-in failed. Please sign in manually.");
           setIsLoading(false);
         }
-      } else {
-        const errorResponse = response?.response || response;
-        const errorData = errorResponse?.data;
-        
-        let errMsg = "Registration failed. Please check your details.";
-        if (errorData) {
-          if (errorData.message) {
-            errMsg = errorData.message;
-            if (errorData.errors && typeof errorData.errors === "object") {
-              const fieldErrors = Object.entries(errorData.errors).map(([key, val]) => {
-                const formattedKey = key.replace("_", " ");
-                return `${formattedKey}: ${Array.isArray(val) ? val.join(" ") : val}`;
-              });
-              if (fieldErrors.length > 0) {
-                errMsg = `${errorData.message} - ${fieldErrors.join(" | ")}`;
-              }
-            }
-          } else if (errorData.detail) {
-            errMsg = errorData.detail;
-          }
-        }
-        setError(errMsg);
-        setIsLoading(false);
       }
     } catch (err) {
       console.error("Registration failed:", err);
-      setError("Failed to connect to the server. Please try again.");
+      const errorData = err.response?.data;
+      if (errorData) {
+        if (errorData.errors && typeof errorData.errors === "object") {
+          setFieldErrors(errorData.errors);
+          const messages = Object.entries(errorData.errors).map(([key, val]) => {
+            const label = key.replace(/_/g, " ");
+            const detail = Array.isArray(val) ? val.join(" ") : String(val);
+            return `${label}: ${detail}`;
+          });
+          setError(messages.join(" • "));
+        } else if (errorData.message && errorData.message !== "Validation failed.") {
+          setError(errorData.message);
+        } else if (errorData.detail) {
+          setError(typeof errorData.detail === "string" ? errorData.detail : JSON.stringify(errorData.detail));
+        } else {
+          setError("Registration failed. Please check your details.");
+        }
+      } else {
+        setError("Failed to connect to the server. Please try again.");
+      }
       setIsLoading(false);
     }
   };
@@ -242,9 +247,18 @@ function RegisterContent() {
                       placeholder="Jane"
                       value={formData.first_name}
                       onChange={handleChange}
-                      className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"
+                      className={`w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
+                        fieldErrors.first_name
+                          ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                          : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
+                      }`}
                     />
                   </div>
+                  {fieldErrors.first_name && (
+                    <p className="text-[11px] text-rose-600 font-medium">
+                      {Array.isArray(fieldErrors.first_name) ? fieldErrors.first_name.join(" ") : fieldErrors.first_name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -261,9 +275,18 @@ function RegisterContent() {
                       placeholder="Doe"
                       value={formData.last_name}
                       onChange={handleChange}
-                      className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"
+                      className={`w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
+                        fieldErrors.last_name
+                          ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                          : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
+                      }`}
                     />
                   </div>
+                  {fieldErrors.last_name && (
+                    <p className="text-[11px] text-rose-600 font-medium">
+                      {Array.isArray(fieldErrors.last_name) ? fieldErrors.last_name.join(" ") : fieldErrors.last_name}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -283,9 +306,24 @@ function RegisterContent() {
                     placeholder="jane.doe@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"
+                    className={`w-full rounded-lg border bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
+                      fieldErrors.email
+                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
+                    }`}
                   />
                 </div>
+                {fieldErrors.email && (
+                  <div className="flex items-center justify-between text-[11px] text-rose-600 font-medium">
+                    <span>{Array.isArray(fieldErrors.email) ? fieldErrors.email.join(" ") : fieldErrors.email}</span>
+                    <Link
+                      href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
+                      className="text-[#738374] font-bold underline ml-2 hover:text-black shrink-0"
+                    >
+                      Sign In &rarr;
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {/* Phone Number */}
@@ -305,9 +343,18 @@ function RegisterContent() {
                     placeholder="10-digit mobile number"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"
+                    className={`w-full rounded-lg border bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
+                      fieldErrors.phone
+                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
+                    }`}
                   />
                 </div>
+                {fieldErrors.phone && (
+                  <p className="text-[11px] text-rose-600 font-medium">
+                    {Array.isArray(fieldErrors.phone) ? fieldErrors.phone.join(" ") : fieldErrors.phone}
+                  </p>
+                )}
               </div>
 
               {/* Password */}
@@ -326,7 +373,11 @@ function RegisterContent() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"
+                    className={`w-full rounded-lg border bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
+                      fieldErrors.password
+                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
+                    }`}
                   />
                   <button
                     type="button"
@@ -336,6 +387,11 @@ function RegisterContent() {
                     {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-[11px] text-rose-600 font-medium">
+                    {Array.isArray(fieldErrors.password) ? fieldErrors.password.join(" ") : fieldErrors.password}
+                  </p>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -354,7 +410,11 @@ function RegisterContent() {
                     placeholder="••••••••"
                     value={formData.confirm_password}
                     onChange={handleChange}
-                    className="w-full rounded-lg border border-[#E6E4DD] bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D] font-medium"
+                    className={`w-full rounded-lg border bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
+                      fieldErrors.confirm_password
+                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
+                    }`}
                   />
                   <button
                     type="button"
@@ -364,6 +424,11 @@ function RegisterContent() {
                     {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                   </button>
                 </div>
+                {fieldErrors.confirm_password && (
+                  <p className="text-[11px] text-rose-600 font-medium">
+                    {Array.isArray(fieldErrors.confirm_password) ? fieldErrors.confirm_password.join(" ") : fieldErrors.confirm_password}
+                  </p>
+                )}
               </div>
 
               {/* Newsletter Subscription */}

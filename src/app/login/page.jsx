@@ -31,6 +31,8 @@ function LoginContent() {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const response = await userLoginApi({ email, password });
 
@@ -58,35 +60,30 @@ function LoginContent() {
           setError("Invalid response format from server.");
           setIsLoading(false);
         }
-      } else {
-        const errorResponse = response?.response || response;
-        const errorData = errorResponse?.data;
-        
-        let errMsg = "Invalid email or password.";
-        if (errorData) {
-          if (errorData.errors) {
-            // DRF Validation errors wrapped in custom handler
-            if (errorData.errors.non_field_errors) {
-              errMsg = Array.isArray(errorData.errors.non_field_errors)
-                ? errorData.errors.non_field_errors.join(" ")
-                : errorData.errors.non_field_errors;
-            } else {
-              // Get the first error value from the object
-              const firstError = Object.values(errorData.errors)[0];
-              errMsg = Array.isArray(firstError) ? firstError.join(" ") : firstError;
-            }
-          } else if (errorData.message && errorData.message !== "Validation failed.") {
-            errMsg = errorData.message;
-          } else if (errorData.detail) {
-            errMsg = errorData.detail;
-          }
-        }
-        setError(errMsg);
-        setIsLoading(false);
       }
     } catch (err) {
       console.error("Login failed:", err);
-      setError("Failed to connect to the server. Please try again.");
+      const errorData = err.response?.data;
+      let errMsg = "Invalid email or password.";
+      if (errorData) {
+        if (errorData.errors) {
+          if (errorData.errors.non_field_errors) {
+            errMsg = Array.isArray(errorData.errors.non_field_errors)
+              ? errorData.errors.non_field_errors.join(" ")
+              : errorData.errors.non_field_errors;
+          } else {
+            const firstError = Object.values(errorData.errors)[0];
+            errMsg = Array.isArray(firstError) ? firstError.join(" ") : firstError;
+          }
+        } else if (errorData.message && errorData.message !== "Validation failed.") {
+          errMsg = errorData.message;
+        } else if (errorData.detail) {
+          errMsg = typeof errorData.detail === "string" ? errorData.detail : JSON.stringify(errorData.detail);
+        }
+      } else {
+        errMsg = "Failed to connect to the server. Please try again.";
+      }
+      setError(errMsg);
       setIsLoading(false);
     }
   };
