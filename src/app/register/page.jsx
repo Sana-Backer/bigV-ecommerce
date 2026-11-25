@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, User, Phone, Eye, EyeOff, Loader2, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff, Loader2, ArrowLeft, AlertCircle, CheckCircle, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { userRegisterApi } from "@/services/auth";
 import { validatePhoneNumber, sanitizePhoneInput } from "@/lib/phoneValidation";
@@ -158,8 +158,8 @@ function RegisterContent() {
         // Parse and humanize field error messages
         for (const [key, val] of Object.entries(rawErrors)) {
           const raw = Array.isArray(val) ? val.join(" ") : String(val);
-          if (raw.toLowerCase().includes("already exists")) {
-            friendlyFieldErrors[key] = "An account with this email already exists.";
+          if (raw.toLowerCase().includes("already exists") || raw.toLowerCase().includes("already registered")) {
+            friendlyFieldErrors[key] = "This email is already registered.";
           } else if (raw.toLowerCase().includes("may not be blank")) {
             friendlyFieldErrors[key] = `Please enter your ${key.replace(/_/g, " ")}.`;
           } else if (raw.toLowerCase().includes("valid email")) {
@@ -174,10 +174,10 @@ function RegisterContent() {
         setFieldErrors(friendlyFieldErrors);
 
         // Check if email duplicate is the main issue
-        if (friendlyFieldErrors.email && friendlyFieldErrors.email.includes("already exists")) {
+        if (friendlyFieldErrors.email && (friendlyFieldErrors.email.includes("already registered") || friendlyFieldErrors.email.includes("already exists"))) {
           setErrorBanner({
-            title: "Account Already Exists",
-            message: "An account with this email address already exists. Would you like to sign in?",
+            title: "Already have an account?",
+            message: "An account with this email address already exists.",
             hasExistingAccount: true
           });
         } else {
@@ -305,14 +305,14 @@ function RegisterContent() {
                       onChange={handleChange}
                       className={`w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                         fieldErrors.first_name
-                          ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
+                          ? "border-[#E5A8A8] focus:border-[#C97B7B]"
                           : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                       }`}
                     />
                   </div>
                   {fieldErrors.first_name && (
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
-                      <AlertCircle className="h-3 w-3 shrink-0" />
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#A84B4B] font-actor">
+                      <Info className="h-3.5 w-3.5 shrink-0 text-[#A84B4B]" />
                       <span>{fieldErrors.first_name}</span>
                     </div>
                   )}
@@ -334,14 +334,14 @@ function RegisterContent() {
                       onChange={handleChange}
                       className={`w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                         fieldErrors.last_name
-                          ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
+                          ? "border-[#E5A8A8] focus:border-[#C97B7B]"
                           : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                       }`}
                     />
                   </div>
                   {fieldErrors.last_name && (
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
-                      <AlertCircle className="h-3 w-3 shrink-0" />
+                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#A84B4B] font-actor">
+                      <Info className="h-3.5 w-3.5 shrink-0 text-[#A84B4B]" />
                       <span>{fieldErrors.last_name}</span>
                     </div>
                   )}
@@ -366,20 +366,18 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.email
-                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
+                        ? "border-[#E5A8A8] focus:border-[#C97B7B]"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
                 </div>
                 {fieldErrors.email && (
-                  <div className="flex items-center justify-between gap-2 mt-1.5 text-[11px] text-rose-600 font-medium font-actor">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <AlertCircle className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{fieldErrors.email}</span>
-                    </div>
+                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#A84B4B] font-actor">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-[#A84B4B]" />
+                    <span>{fieldErrors.email}</span>
                     <Link
                       href={`/login?email=${encodeURIComponent(formData.email)}&redirect=${encodeURIComponent(redirectPath)}`}
-                      className="text-[#2C332E] hover:text-[#738374] font-bold underline shrink-0 transition-colors ml-1"
+                      className="underline underline-offset-2 hover:text-[#2C332E] font-medium text-[#7D3B3B] transition-colors ml-0.5"
                     >
                       Sign in &rarr;
                     </Link>
@@ -406,14 +404,14 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.phone
-                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
+                        ? "border-[#E5A8A8] focus:border-[#C97B7B]"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
                 </div>
                 {fieldErrors.phone && (
-                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
+                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#A84B4B] font-actor">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-[#A84B4B]" />
                     <span>{fieldErrors.phone}</span>
                   </div>
                 )}
@@ -437,7 +435,7 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.password
-                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
+                        ? "border-[#E5A8A8] focus:border-[#C97B7B]"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
@@ -450,8 +448,8 @@ function RegisterContent() {
                   </button>
                 </div>
                 {fieldErrors.password && (
-                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
+                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#A84B4B] font-actor">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-[#A84B4B]" />
                     <span>{fieldErrors.password}</span>
                   </div>
                 )}
@@ -475,7 +473,7 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.confirm_password
-                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
+                        ? "border-[#E5A8A8] focus:border-[#C97B7B]"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
@@ -488,8 +486,8 @@ function RegisterContent() {
                   </button>
                 </div>
                 {fieldErrors.confirm_password && (
-                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
+                  <div className="flex items-center gap-1.5 mt-1.5 text-xs text-[#A84B4B] font-actor">
+                    <Info className="h-3.5 w-3.5 shrink-0 text-[#A84B4B]" />
                     <span>{fieldErrors.confirm_password}</span>
                   </div>
                 )}
@@ -502,32 +500,28 @@ function RegisterContent() {
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    className="rounded-xl bg-[#FFF8F8] border border-rose-200/90 p-3.5 shadow-xs"
+                    className="rounded-2xl bg-[#F4F1EB] border border-[#E8E4DD] p-4 sm:p-5 shadow-xs text-left"
                   >
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center shrink-0 mt-0.5">
-                        <AlertCircle className="h-4 w-4 text-rose-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-semibold text-rose-950 tracking-wide">
-                          {errorBanner.title}
-                        </h4>
-                        <p className="text-xs text-rose-800/90 mt-0.5 leading-relaxed font-actor">
-                          {errorBanner.message}
-                        </p>
-
-                        {errorBanner.hasExistingAccount && (
-                          <div className="mt-2.5 flex items-center gap-3">
-                            <Link
-                              href={`/login?email=${encodeURIComponent(formData.email)}&redirect=${encodeURIComponent(redirectPath)}`}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#2C332E] hover:bg-[#3E4741] rounded-lg transition-all shadow-sm"
-                            >
-                              Sign In to Your Account &rarr;
-                            </Link>
-                          </div>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-[#5A635B] shrink-0" />
+                      <h4 className="text-sm font-bold text-[#2C332E] tracking-tight">
+                        {errorBanner.title}
+                      </h4>
                     </div>
+                    <p className="text-xs text-[#5A635B] leading-relaxed mt-1.5 font-actor">
+                      {errorBanner.message}
+                    </p>
+
+                    {errorBanner.hasExistingAccount && (
+                      <div className="mt-3">
+                        <Link
+                          href={`/login?email=${encodeURIComponent(formData.email)}&redirect=${encodeURIComponent(redirectPath)}`}
+                          className="text-xs font-semibold text-[#2C332E] underline underline-offset-4 hover:text-black transition-colors"
+                        >
+                          Sign in to your account &rarr;
+                        </Link>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
