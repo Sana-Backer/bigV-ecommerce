@@ -24,7 +24,7 @@ function RegisterContent() {
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [errorBanner, setErrorBanner] = useState(null); // { title, message, hasExistingAccount }
   const [fieldErrors, setFieldErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -38,6 +38,8 @@ function RegisterContent() {
       ...prev,
       [name]: type === "checkbox" ? checked : finalValue
     }));
+    
+    // Clear errors when the user begins typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => {
         const next = { ...prev };
@@ -45,59 +47,86 @@ function RegisterContent() {
         return next;
       });
     }
+    if (errorBanner) {
+      setErrorBanner(null);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setErrorBanner(null);
     setFieldErrors({});
 
     // Basic Validation
     if (!formData.first_name || !formData.email || !formData.password || !formData.confirm_password) {
-      setError("Please fill in all required fields.");
+      setErrorBanner({
+        title: "Missing Information",
+        message: "Please fill in all required fields marked with an asterisk (*)."
+      });
       return;
     }
 
     // Phone Validation
     if (!formData.phone || !formData.phone.trim()) {
-      setError("Please enter your phone number.");
+      setErrorBanner({
+        title: "Phone Number Required",
+        message: "Please enter your mobile phone number."
+      });
       return;
     }
 
     const phoneValidation = validatePhoneNumber(formData.phone);
     if (!phoneValidation.isValid) {
-      setError(phoneValidation.message);
+      setErrorBanner({
+        title: "Invalid Phone Number",
+        message: phoneValidation.message
+      });
+      setFieldErrors({ phone: phoneValidation.message });
       return;
     }
 
     if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      setErrorBanner({
+        title: "Password Too Short",
+        message: "Password must be at least 8 characters long."
+      });
+      setFieldErrors({ password: "Must be at least 8 characters long." });
       return;
     }
 
     if (formData.password !== formData.confirm_password) {
-      setError("Passwords do not match.");
+      setErrorBanner({
+        title: "Passwords Do Not Match",
+        message: "Please ensure both password fields match exactly."
+      });
+      setFieldErrors({ confirm_password: "Passwords do not match." });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await userRegisterApi({
+      // Build clean payload — only include last_name if actually provided
+      const payload = {
         email: formData.email.trim(),
         first_name: formData.first_name.trim(),
-        last_name: formData.last_name ? formData.last_name.trim() : "",
         phone: phoneValidation.formatted || formData.phone.trim(),
         password: formData.password,
         confirm_password: formData.confirm_password,
         newsletter_subscribed: formData.newsletter_subscribed
-      });
+      };
+
+      if (formData.last_name && formData.last_name.trim()) {
+        payload.last_name = formData.last_name.trim();
+      }
+
+      const response = await userRegisterApi(payload);
 
       if (response && (response.status === 200 || response.status === 201)) {
         setIsSuccess(true);
-        const payload = response.data;
-        const token = payload.data?.access || payload.access;
-        const user = payload.data?.user || payload.user;
+        const resData = response.data;
+        const token = resData.data?.access || resData.access;
+        const user = resData.data?.user || resData.user;
 
         if (token && user) {
           localStorage.setItem("customerToken", token);
@@ -111,31 +140,70 @@ function RegisterContent() {
             window.location.href = redirectPath;
           }, 1500);
         } else {
-          setError("Account created, but automatic sign-in failed. Please sign in manually.");
+          setErrorBanner({
+            title: "Sign In Required",
+            message: "Account created, but automatic sign-in failed. Please sign in manually."
+          });
           setIsLoading(false);
         }
       }
     } catch (err) {
       console.error("Registration failed:", err);
       const errorData = err.response?.data;
+
       if (errorData) {
-        if (errorData.errors && typeof errorData.errors === "object") {
-          setFieldErrors(errorData.errors);
-          const messages = Object.entries(errorData.errors).map(([key, val]) => {
-            const label = key.replace(/_/g, " ");
-            const detail = Array.isArray(val) ? val.join(" ") : String(val);
-            return `${label}: ${detail}`;
+        const rawErrors = errorData.errors || {};
+        const friendlyFieldErrors = {};
+
+        // Parse and humanize field error messages
+        for (const [key, val] of Object.entries(rawErrors)) {
+          const raw = Array.isArray(val) ? val.join(" ") : String(val);
+          if (raw.toLowerCase().includes("already exists")) {
+            friendlyFieldErrors[key] = "An account with this email already exists.";
+          } else if (raw.toLowerCase().includes("may not be blank")) {
+            friendlyFieldErrors[key] = `Please enter your ${key.replace(/_/g, " ")}.`;
+          } else if (raw.toLowerCase().includes("valid email")) {
+            friendlyFieldErrors[key] = "Please enter a valid email address.";
+          } else if (raw.toLowerCase().includes("password")) {
+            friendlyFieldErrors[key] = raw;
+          } else {
+            friendlyFieldErrors[key] = raw;
+          }
+        }
+
+        setFieldErrors(friendlyFieldErrors);
+
+        // Check if email duplicate is the main issue
+        if (friendlyFieldErrors.email && friendlyFieldErrors.email.includes("already exists")) {
+          setErrorBanner({
+            title: "Account Already Exists",
+            message: "An account with this email address already exists. Would you like to sign in?",
+            hasExistingAccount: true
           });
-          setError(messages.join(" • "));
-        } else if (errorData.message && errorData.message !== "Validation failed.") {
-          setError(errorData.message);
-        } else if (errorData.detail) {
-          setError(typeof errorData.detail === "string" ? errorData.detail : JSON.stringify(errorData.detail));
         } else {
-          setError("Registration failed. Please check your details.");
+          const count = Object.keys(friendlyFieldErrors).length;
+          if (count === 1) {
+            setErrorBanner({
+              title: "Please Check Your Information",
+              message: Object.values(friendlyFieldErrors)[0]
+            });
+          } else if (count > 1) {
+            setErrorBanner({
+              title: "Please Check the Highlighted Fields",
+              message: "Some details need your attention before we can create your account."
+            });
+          } else {
+            setErrorBanner({
+              title: "Registration Failed",
+              message: errorData.message || errorData.detail || "Please verify your details and try again."
+            });
+          }
         }
       } else {
-        setError("Failed to connect to the server. Please try again.");
+        setErrorBanner({
+          title: "Connection Error",
+          message: "Unable to connect to the server. Please check your internet connection and try again."
+        });
       }
       setIsLoading(false);
     }
@@ -201,18 +269,6 @@ function RegisterContent() {
           </div>
 
           <AnimatePresence mode="wait">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mb-6 flex items-start gap-3 rounded-xl bg-rose-50 border border-rose-100 p-4 text-xs font-medium text-rose-800"
-              >
-                <AlertCircle className="h-4.5 w-4.5 shrink-0 text-rose-600 mt-0.5" />
-                <span>{error}</span>
-              </motion.div>
-            )}
-
             {isSuccess && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -249,15 +305,16 @@ function RegisterContent() {
                       onChange={handleChange}
                       className={`w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                         fieldErrors.first_name
-                          ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                          ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
                           : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                       }`}
                     />
                   </div>
                   {fieldErrors.first_name && (
-                    <p className="text-[11px] text-rose-600 font-medium">
-                      {Array.isArray(fieldErrors.first_name) ? fieldErrors.first_name.join(" ") : fieldErrors.first_name}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      <span>{fieldErrors.first_name}</span>
+                    </div>
                   )}
                 </div>
 
@@ -277,15 +334,16 @@ function RegisterContent() {
                       onChange={handleChange}
                       className={`w-full rounded-lg border bg-white py-3 pl-9 pr-3 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                         fieldErrors.last_name
-                          ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                          ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
                           : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                       }`}
                     />
                   </div>
                   {fieldErrors.last_name && (
-                    <p className="text-[11px] text-rose-600 font-medium">
-                      {Array.isArray(fieldErrors.last_name) ? fieldErrors.last_name.join(" ") : fieldErrors.last_name}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      <span>{fieldErrors.last_name}</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -308,19 +366,22 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.email
-                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
                 </div>
                 {fieldErrors.email && (
-                  <div className="flex items-center justify-between text-[11px] text-rose-600 font-medium">
-                    <span>{Array.isArray(fieldErrors.email) ? fieldErrors.email.join(" ") : fieldErrors.email}</span>
+                  <div className="flex items-center justify-between gap-2 mt-1.5 text-[11px] text-rose-600 font-medium font-actor">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{fieldErrors.email}</span>
+                    </div>
                     <Link
-                      href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
-                      className="text-[#738374] font-bold underline ml-2 hover:text-black shrink-0"
+                      href={`/login?email=${encodeURIComponent(formData.email)}&redirect=${encodeURIComponent(redirectPath)}`}
+                      className="text-[#2C332E] hover:text-[#738374] font-bold underline shrink-0 transition-colors ml-1"
                     >
-                      Sign In &rarr;
+                      Sign in &rarr;
                     </Link>
                   </div>
                 )}
@@ -345,15 +406,16 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-4 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.phone
-                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
                 </div>
                 {fieldErrors.phone && (
-                  <p className="text-[11px] text-rose-600 font-medium">
-                    {Array.isArray(fieldErrors.phone) ? fieldErrors.phone.join(" ") : fieldErrors.phone}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{fieldErrors.phone}</span>
+                  </div>
                 )}
               </div>
 
@@ -375,7 +437,7 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.password
-                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
@@ -388,9 +450,10 @@ function RegisterContent() {
                   </button>
                 </div>
                 {fieldErrors.password && (
-                  <p className="text-[11px] text-rose-600 font-medium">
-                    {Array.isArray(fieldErrors.password) ? fieldErrors.password.join(" ") : fieldErrors.password}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{fieldErrors.password}</span>
+                  </div>
                 )}
               </div>
 
@@ -412,7 +475,7 @@ function RegisterContent() {
                     onChange={handleChange}
                     className={`w-full rounded-lg border bg-white py-3 pl-10 pr-11 text-xs text-[#2C332E] outline-none transition-all placeholder:text-[#A8B2A9] font-medium ${
                       fieldErrors.confirm_password
-                        ? "border-rose-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-200"
+                        ? "border-rose-300 ring-2 ring-rose-100/70 focus:border-rose-400"
                         : "border-[#E6E4DD] focus:border-[#8C968D] focus:ring-1 focus:ring-[#8C968D]"
                     }`}
                   />
@@ -425,35 +488,49 @@ function RegisterContent() {
                   </button>
                 </div>
                 {fieldErrors.confirm_password && (
-                  <p className="text-[11px] text-rose-600 font-medium">
-                    {Array.isArray(fieldErrors.confirm_password) ? fieldErrors.confirm_password.join(" ") : fieldErrors.confirm_password}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-rose-600 font-medium font-actor">
+                    <AlertCircle className="h-3 w-3 shrink-0" />
+                    <span>{fieldErrors.confirm_password}</span>
+                  </div>
                 )}
               </div>
 
-              {/* Newsletter Subscription */}
-              <div className="flex items-start gap-2.5 pt-1">
-                <label className="relative flex items-center gap-2.5 cursor-pointer select-none text-xs font-semibold text-[#5A635B] font-actor mt-0.5">
-                  <input
-                    type="checkbox"
-                    name="newsletter_subscribed"
-                    checked={formData.newsletter_subscribed}
-                    onChange={handleChange}
-                    className="peer sr-only"
-                  />
-                  <div className="h-4 w-4 rounded border border-[#D5D3C8] bg-white transition-all peer-checked:border-[#738374] peer-checked:bg-[#738374] flex items-center justify-center shrink-0">
-                    <svg
-                      className="h-2.5 w-2.5 text-white hidden peer-checked:block stroke-[3]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                  </div>
-                  Subscribe to the BigS Ventures newsletter for exclusive offers & product updates
-                </label>
-              </div>
+              {/* Error Message Banner (Positioned right above Create Account) */}
+              <AnimatePresence mode="wait">
+                {errorBanner && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    className="rounded-xl bg-[#FFF8F8] border border-rose-200/90 p-3.5 shadow-xs"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertCircle className="h-4 w-4 text-rose-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-semibold text-rose-950 tracking-wide">
+                          {errorBanner.title}
+                        </h4>
+                        <p className="text-xs text-rose-800/90 mt-0.5 leading-relaxed font-actor">
+                          {errorBanner.message}
+                        </p>
+
+                        {errorBanner.hasExistingAccount && (
+                          <div className="mt-2.5 flex items-center gap-3">
+                            <Link
+                              href={`/login?email=${encodeURIComponent(formData.email)}&redirect=${encodeURIComponent(redirectPath)}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#2C332E] hover:bg-[#3E4741] rounded-lg transition-all shadow-sm"
+                            >
+                              Sign In to Your Account &rarr;
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Submit Button */}
               <button
